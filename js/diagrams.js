@@ -154,19 +154,27 @@ const DiagramRenderer = (() => {
 
     // Label with white background for readability
     if (conn.label) {
-      const labelX = cx_;
-      const labelY = cy_ - 12;
-      const textLen = conn.label.length * 5.5 + 8;
+      const labelX = cx_ + (conn.labelOffsetX || 0);
+      const baseY = cy_ - 12 + (conn.labelOffsetY || 0);
+      const lines = conn.label.split('\n');
+      const lineHeight = 12;
+      const maxLen = Math.max(...lines.map(l => l.length));
+      const textLen = maxLen * 5.5 + 8;
+      const totalH = lines.length * lineHeight + 2;
+
       g.appendChild(el('rect', {
-        x: labelX - textLen / 2, y: labelY - 7,
-        width: textLen, height: 14,
+        x: labelX - textLen / 2, y: baseY - 7,
+        width: textLen, height: totalH,
         rx: 3,
         fill: 'transparent',
         stroke: 'none',
       }));
-      g.appendChild(el('text', {
-        x: labelX, y: labelY, class: 'conn-label',
-      }, conn.label));
+
+      lines.forEach((line, li) => {
+        g.appendChild(el('text', {
+          x: labelX, y: baseY + li * lineHeight, class: 'conn-label',
+        }, line));
+      });
     }
 
     // Animated packet dot
