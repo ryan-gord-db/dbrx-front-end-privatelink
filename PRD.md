@@ -35,10 +35,10 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 - **Flow:** On-prem client -> on-prem DNS resolver -> conditional forwarder (`*.cloud.databricks.com`) -> Route 53 Inbound Resolver VPCE -> Route 53 Private Hosted Zone -> VPCE ENI private IP -> Databricks control plane
 - **Key components:** On-prem DNS server, conditional forwarding rule, Direct Connect / VPN, Route 53 Inbound Resolver endpoint (VPCE), Route 53 PHZ, front-end workspace VPCE
 
-### Scenario B — On-Prem: Forward Specific Workspace FQDN
-- **Purpose:** Show targeted forwarding for a single workspace
-- **Flow:** Same as Scenario A but the conditional forwarder targets `<workspace-name>.cloud.databricks.com` instead of the wildcard
-- **Key difference:** More surgical DNS configuration; other Databricks workspaces resolve publicly. Diagram highlights the forwarding rule difference.
+### Scenario B — On-Prem: Forward Specific Workspace Domains
+- **Purpose:** Show targeted forwarding for a single workspace and its associated domains
+- **Flow:** Same as Scenario A but the conditional forwarders target specific domains instead of the wildcard: `<workspace-name>.cloud.databricks.com`, `dbc-dp-<workspace-id>.cloud.databricks.com` (data plane relay), and any Databricks Apps domains (`<app-name>.aws.databricksapps.com`) tied to the workspace
+- **Key difference:** More surgical DNS configuration; other Databricks workspaces resolve publicly. Requires forwarding multiple domains per workspace (workspace URL, data plane relay, each app). Diagram highlights the forwarding rule difference.
 
 ## 5. Page Layout & UX
 

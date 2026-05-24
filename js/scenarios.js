@@ -226,8 +226,9 @@ resource "aws_route53_record" "workspace" {
     id: 'workspace',
     title: 'On-Prem: Workspace-Specific DNS Forwarding',
     overview:
-      'Instead of forwarding all <code>*.cloud.databricks.com</code> queries, the on-prem DNS server has a conditional forwarder ' +
-      'targeting only the specific workspace FQDN (e.g., <code>my-wksp.cloud.databricks.com</code>). ' +
+      'Instead of forwarding all <code>*.cloud.databricks.com</code> queries, the on-prem DNS server has conditional forwarders ' +
+      'targeting only the specific workspace FQDN (e.g., <code>my-wksp.cloud.databricks.com</code>), its data plane relay domain ' +
+      '(<code>dbc-dp-&lt;workspace-id&gt;.cloud.databricks.com</code>), and any Databricks Apps domains (e.g., <code>my-app.aws.databricksapps.com</code>) tied to the workspace. ' +
       'This is more surgical — other Databricks workspaces still resolve via public DNS. ' +
       'The rest of the flow is identical to the wildcard scenario: Route 53 Inbound Resolver, PHZ (<code>privatelink.cloud.databricks.com</code>) with a region A record, VPCE, PrivateLink.',
 
@@ -236,14 +237,15 @@ resource "aws_route53_record" "workspace" {
       'Non-targeted workspaces continue to resolve via public DNS, so there is no risk of breaking access to workspaces that are not configured for PrivateLink.',
 
     caveats: [
-      'Each workspace that requires PrivateLink needs its own conditional forwarder entry on the corporate DNS server — more configuration to maintain.',
-      'When a new workspace is provisioned and needs PrivateLink, a DNS change must be made on-prem before it can be reached privately. This is an operational step that can be missed.',
-      'If the DNS team is separate from the cloud team, each new workspace requires a cross-team change request.',
+      'Each workspace requires <strong>multiple</strong> conditional forwarder entries: the workspace FQDN, its <code>dbc-dp-&lt;workspace-id&gt;.cloud.databricks.com</code> data plane relay domain, and the specific <code>&lt;app-name&gt;.aws.databricksapps.com</code> hostname for each Databricks App deployed to that workspace. Do <strong>not</strong> forward all of <code>*.databricksapps.com</code> — only forward the individual App hostnames associated with workspaces that require front-end PrivateLink.',
+      'When a new workspace is provisioned and needs PrivateLink, DNS changes must be made on-prem for all associated domains before it can be reached privately. This is an operational step that can be missed.',
+      'If the DNS team is separate from the cloud team, each new workspace requires a cross-team change request — and each new Databricks App deployed to that workspace may require another.',
+      'The wildcard approach (Scenario A) avoids maintenance for <code>*.cloud.databricks.com</code> domains but still requires a per-app forwarder for each Databricks Apps hostname on <code>databricksapps.com</code>.',
     ],
 
     steps: [
       { id: 1, label: 'Client queries on-prem DNS',           detail: 'The client queries the corporate DNS server for <strong>my-wksp.cloud.databricks.com</strong>.' },
-      { id: 2, label: 'Conditional forwarder matches workspace FQDN', detail: 'The corporate DNS server matches the query against the conditional forwarding rule for <strong>my-wksp.cloud.databricks.com</strong> specifically (not a wildcard). Queries for other workspaces resolve via public DNS.' },
+      { id: 2, label: 'Conditional forwarder matches workspace domain', detail: 'The corporate DNS server matches the query against conditional forwarding rules for this workspace\'s domains: <strong>my-wksp.cloud.databricks.com</strong>, <strong>dbc-dp-&lt;workspace-id&gt;.cloud.databricks.com</strong>, and the specific <strong>Databricks Apps</strong> hostnames (e.g., <code>my-app.aws.databricksapps.com</code>) tied to this workspace. Queries for other workspaces and their apps resolve via public DNS.' },
       { id: 3, label: 'Route 53 Inbound Resolver receives query', detail: 'The DNS query arrives at the <strong>Route 53 Inbound Resolver endpoint</strong> ENIs in the customer VPC via Direct Connect / VPN.' },
       { id: 4, label: 'Public CNAME redirects to privatelink domain', detail: 'Databricks public DNS returns a <strong>CNAME</strong> from <strong>my-wksp.cloud.databricks.com</strong> to <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong> (e.g., <code>nvirginia.privatelink.cloud.databricks.com</code>). This CNAME is what causes the query to match the Private Hosted Zone.' },
       { id: 5, label: 'Route 53 resolves via PHZ',             detail: 'Because the VPC has an associated PHZ for <strong>privatelink.cloud.databricks.com</strong>, Route 53 intercepts the CNAME target and resolves the <strong>A record</strong> for <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong>, returning the <strong>private IP</strong> of the front-end VPCE ENI.' },
@@ -253,7 +255,7 @@ resource "aws_route53_record" "workspace" {
 
     components: [
       { name: 'Client Device',              purpose: 'Originates DNS query and HTTPS request from on-prem',        config: 'Uses corporate DNS server; routable to VPC via DX/VPN' },
-      { name: 'Corporate DNS Server',        purpose: 'Forwards only the target workspace query to Route 53',       config: 'Conditional forwarder: my-wksp.cloud.databricks.com -> Inbound Resolver ENI IPs (NOT wildcard)' },
+      { name: 'Corporate DNS Server',        purpose: 'Forwards target workspace and associated domains to Route 53', config: 'Conditional forwarders: my-wksp.cloud.databricks.com, dbc-dp-&lt;workspace-id&gt;.cloud.databricks.com, and each Databricks Apps domain (e.g., my-app.aws.databricksapps.com) -> Inbound Resolver ENI IPs' },
       { name: 'Direct Connect / VPN',        purpose: 'Private network link between on-prem and AWS VPC',           config: 'Must allow DNS (UDP/TCP 53) and HTTPS (TCP 443)', link: 'https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html' },
       { name: 'Route 53 Inbound Resolver',   purpose: 'Receives forwarded DNS queries inside the VPC',              config: 'Same as wildcard scenario — no per-workspace config needed', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-getting-started.html' },
       { name: 'Route 53 Private Hosted Zone', purpose: 'Maps region hostname to VPCE private IP',                   config: 'Zone: privatelink.cloud.databricks.com; A record for &lt;region&gt;.privatelink.cloud.databricks.com (e.g., nvirginia, ohio, frankfurt, tokyo)', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
@@ -263,29 +265,59 @@ resource "aws_route53_record" "workspace" {
 
     configs: [
       {
-        title: 'Windows DNS — Workspace-Specific Forwarder (PowerShell)',
+        title: 'Windows DNS — Workspace-Specific Forwarders (PowerShell)',
         lang: 'powershell',
         code:
-`# Forward ONLY the specific workspace — not a wildcard
+`# 1. Workspace URL
 Add-DnsServerConditionalForwarderZone \`
   -Name "my-wksp.cloud.databricks.com" \`
   -MasterServers 10.0.1.10, 10.0.2.10 \`
   -ReplicationScope "Forest"
 
-# Other *.cloud.databricks.com queries resolve publicly`,
+# 2. Data plane relay domain
+Add-DnsServerConditionalForwarderZone \`
+  -Name "dbc-dp-a1b2c3d4e5f6.cloud.databricks.com" \`
+  -MasterServers 10.0.1.10, 10.0.2.10 \`
+  -ReplicationScope "Forest"
+
+# 3. Databricks Apps — forward ONLY apps tied to this workspace
+#    Do NOT wildcard-forward *.databricksapps.com
+Add-DnsServerConditionalForwarderZone \`
+  -Name "my-app.aws.databricksapps.com" \`
+  -MasterServers 10.0.1.10, 10.0.2.10 \`
+  -ReplicationScope "Forest"
+
+# Add one entry per app on this workspace.
+# Apps on workspaces without front-end PL should resolve publicly.`,
       },
       {
-        title: 'BIND — Workspace-Specific Forwarder',
+        title: 'BIND — Workspace-Specific Forwarders',
         lang: 'text',
         code:
-`zone "my-wksp.cloud.databricks.com" {
+`# 1. Workspace URL
+zone "my-wksp.cloud.databricks.com" {
     type forward;
     forward only;
     forwarders { 10.0.1.10; 10.0.2.10; };
 };
 
-# Only this workspace is forwarded privately.
-# All other *.cloud.databricks.com resolve via public DNS.`,
+# 2. Data plane relay domain
+zone "dbc-dp-a1b2c3d4e5f6.cloud.databricks.com" {
+    type forward;
+    forward only;
+    forwarders { 10.0.1.10; 10.0.2.10; };
+};
+
+# 3. Databricks Apps — forward ONLY apps tied to this workspace
+#    Do NOT wildcard-forward *.databricksapps.com
+zone "my-app.aws.databricksapps.com" {
+    type forward;
+    forward only;
+    forwarders { 10.0.1.10; 10.0.2.10; };
+};
+
+# Add one zone block per app on this workspace.
+# Apps on workspaces without front-end PL should resolve publicly.`,
       },
       {
         title: 'Route 53 PHZ Record (Terraform)',
@@ -311,7 +343,7 @@ Add-DnsServerConditionalForwarderZone \`
       ],
       nodes: [
         { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                          x: 60,  y: 120, w: 110, h: 48, zone: 'onprem' },
-        { id: 'corpdns',  label: 'Corporate DNS',        sub: 'my-wksp.cloud... →',                x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
+        { id: 'corpdns',  label: 'Corporate DNS',        sub: 'wksp + dp + apps →',                 x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
         { id: 'dxvpn',    label: 'DX / VPN',             sub: 'Private link',                           x: 230, y: 195, w: 80,  h: 44, zone: null },
         { id: 'resolver', label: 'R53 Inbound',          sub: 'Resolver Endpoint',                      x: 380, y: 270, w: 120, h: 48, zone: 'vpc' },
         { id: 'phz',      label: 'Route 53 PHZ',         sub: 'privatelink.cloud.databricks.com',       x: 370, y: 110, w: 150, h: 48, zone: 'vpc' },
