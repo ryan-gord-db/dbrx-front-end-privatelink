@@ -89,9 +89,9 @@ dig +short my-wksp.cloud.databricks.com`,
       'This is the simplest front-end PrivateLink configuration — a single wildcard forwarding rule covers all current and future workspaces.',
 
     caveats: [
-      'All <code>*.cloud.databricks.com</code> queries are forwarded privately — including workspaces that may not have a corresponding VPCE configured, which will cause DNS resolution failures for those workspaces.',
-      'Workspaces in other Databricks regions (e.g., EU workspaces accessed by US-based users) will also be forwarded, potentially breaking access if the PHZ and VPCE only cover one region.',
-      'If a new workspace is created without PrivateLink enabled, on-prem clients will not be able to reach it until it is added to the VPCE configuration.',
+      'All <code>*.cloud.databricks.com</code> queries are forwarded to Route 53 regardless of region — every workspace DNS lookup traverses the private path even if the workspace is in a different region.',
+      'Workspaces with no Private Access Settings (PAS) attached will resolve to a public IP, so traffic will traverse the public internet.',
+      'Workspaces with back-end PrivateLink enabled will resolve to a private IP, since enabling back-end PrivateLink requires a PAS to be attached.',
     ],
 
     steps: [
