@@ -161,7 +161,7 @@ const DiagramRenderer = (() => {
         x: labelX - textLen / 2, y: labelY - 7,
         width: textLen, height: 14,
         rx: 3,
-        fill: '#fff', 'fill-opacity': '0.92',
+        fill: 'transparent',
         stroke: 'none',
       }));
       g.appendChild(el('text', {
@@ -222,7 +222,7 @@ const DiagramRenderer = (() => {
 
       const bg = el('g', { class: 'badge-group', 'data-badge-step': conn.step });
       bg.appendChild(el('circle', {
-        cx: badgeCx, cy: badgeCy, r: 10, fill: '#fff', 'fill-opacity': '0.9', stroke: 'none',
+        cx: badgeCx, cy: badgeCy, r: 10, fill: 'transparent', stroke: 'none',
       }));
       bg.appendChild(el('circle', {
         cx: badgeCx, cy: badgeCy, r: 8, class: 'step-badge-bg',
