@@ -159,25 +159,8 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--db-border);
   background: var(--db-light-bg);
 }
-.anim-toggle {
-  display: flex;
-  border: 1px solid var(--db-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.anim-btn {
-  padding: 0.35rem 0.9rem;
-  border: none;
-  background: #fff;
-  color: var(--db-text-muted);
+.step-toggle {
   font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--transition);
-}
-.anim-btn.active {
-  background: var(--db-dark);
-  color: #fff;
 }
 .step-controls {
   display: flex;

@@ -374,16 +374,6 @@ const DiagramRenderer = (() => {
     container.querySelectorAll('.node-group').forEach(n => {
       n.classList.remove('step-active', 'step-dimmed');
     });
-    container.classList.remove('anim-paused');
-  }
-
-  /* ----- Pause animations (for step mode) ----- */
-  function pauseAnimations(container) {
-    container.classList.add('anim-paused');
-  }
-
-  function resumeAnimations(container) {
-    container.classList.remove('anim-paused');
   }
 
   /* ----- Get total step count for a scenario ----- */
@@ -391,5 +381,5 @@ const DiagramRenderer = (() => {
     return scenario.steps.length;
   }
 
-  return { render, showStep, showAllSteps, pauseAnimations, resumeAnimations, getStepCount };
+  return { render, showStep, showAllSteps, getStepCount };
 })();

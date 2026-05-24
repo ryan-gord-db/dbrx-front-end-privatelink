@@ -7,7 +7,7 @@
 
   /* ----- State ----- */
   let currentScenario = 'public';
-  let animMode = 'auto';   // 'auto' | 'step'
+  let stepMode = false;
   let currentStep = 1;
   let compareActive = false;
 
@@ -47,7 +47,7 @@
     hideStepPopup();
     DiagramRenderer.render(diagramContainer, s);
     attachBadgeListeners();
-    if (animMode === 'step') {
+    if (stepMode) {
       currentStep = 1;
       applyStepMode();
     }
@@ -91,7 +91,6 @@
   function applyStepMode() {
     const s = SCENARIOS[currentScenario];
     const total = DiagramRenderer.getStepCount(s);
-    DiagramRenderer.pauseAnimations(diagramContainer);
     DiagramRenderer.showStep(diagramContainer, currentStep, total, s);
     stepIndicator.textContent = `Step ${currentStep} / ${total}`;
     stepPrev.disabled = currentStep <= 1;
@@ -127,21 +126,22 @@
     });
   }
 
-  function setAnimMode(mode) {
-    animMode = mode;
-    $$('.anim-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const stepToggle = $('#stepToggle');
+
+  function toggleStepMode() {
+    stepMode = !stepMode;
+    stepToggle.classList.toggle('active', stepMode);
 
     const detailsEl = document.querySelector('.detail-expander');
-    if (mode === 'auto') {
-      stepControls.classList.add('hidden');
-      DiagramRenderer.showAllSteps(diagramContainer);
-      DiagramRenderer.resumeAnimations(diagramContainer);
-      resetStepText(SCENARIOS[currentScenario]);
-    } else {
+    if (stepMode) {
       stepControls.classList.remove('hidden');
       if (detailsEl) detailsEl.setAttribute('open', '');
       currentStep = 1;
       applyStepMode();
+    } else {
+      stepControls.classList.add('hidden');
+      DiagramRenderer.showAllSteps(diagramContainer);
+      resetStepText(SCENARIOS[currentScenario]);
     }
   }
 
@@ -266,10 +266,8 @@
     });
   });
 
-  // Animation mode toggle
-  $$('.anim-btn').forEach(btn => {
-    btn.addEventListener('click', () => setAnimMode(btn.dataset.mode));
-  });
+  // Step-through toggle
+  stepToggle.addEventListener('click', toggleStepMode);
 
   // Step controls
   stepPrev.addEventListener('click', () => {
@@ -282,7 +280,7 @@
 
   // Keyboard step navigation
   document.addEventListener('keydown', (e) => {
-    if (animMode !== 'step') return;
+    if (!stepMode) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       stepNext.click();
       e.preventDefault();
