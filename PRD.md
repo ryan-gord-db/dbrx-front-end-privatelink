@@ -35,16 +35,16 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 - **Flow:** On-prem client -> on-prem DNS resolver -> conditional forwarders (`*.cloud.databricks.com` and `*.aws.databricksapps.com`) -> Route 53 Inbound Resolver VPCE -> Route 53 Private Hosted Zone -> VPCE ENI private IP -> Databricks control plane
 - **Key components:** On-prem DNS server, two conditional forwarding rules (one per domain), Direct Connect / VPN, Route 53 Inbound Resolver endpoint (VPCE), Route 53 PHZ, front-end workspace VPCE
 
-### Scenario B — On-Prem: Forward Specific Workspace Domains
-- **Purpose:** Show targeted forwarding for a single workspace and its associated domains
-- **Flow:** Same as Scenario A but the conditional forwarders target specific domains instead of the wildcard: `<workspace-name>.cloud.databricks.com`, `dbc-dp-<workspace-id>.cloud.databricks.com` (data plane relay), and any Databricks Apps domains (`<app-name>.aws.databricksapps.com`) tied to the workspace
-- **Key difference:** More surgical DNS configuration; other Databricks workspaces resolve publicly. Requires forwarding multiple domains per workspace (workspace URL, data plane relay, each app). Diagram highlights the forwarding rule difference.
-
-### Scenario C — Per-Workspace PHZ (Wildcard Forward + Per-Workspace Route 53 PHZs)
+### Scenario B — Per-Workspace PHZ (Wildcard Forward + Per-Workspace Route 53 PHZs)
 - **Purpose:** Show wildcard DNS forwarding from on-prem (same as Scenario A) combined with per-workspace Private Hosted Zones in Route 53 instead of a single regional PHZ
 - **Flow:** On-prem client → on-prem DNS → conditional forwarder (`*.cloud.databricks.com`) → DX/VPN → Route 53 Inbound Resolver → per-workspace PHZ (e.g., `prod-wksp.cloud.databricks.com`) → CNAME to workspace-specific VPCE → VPCE ENI private IP → Databricks control plane
 - **Key difference from Scenario A:** Instead of one PHZ for `privatelink.cloud.databricks.com` with a single regional A record that routes all workspaces to the same VPCE, each workspace gets its own PHZ (`<workspace>.cloud.databricks.com`) with a CNAME record pointing to a workspace-specific VPCE. This allows different workspaces to use different VPCEs (e.g., prod workspace → prod VPCE, dev workspace → dev VPCE) and ensures only workspaces with a PHZ resolve privately — workspaces without a PHZ fall through to public DNS.
 - **Use case:** Best when only a subset of workspaces need front-end PrivateLink, or when workspaces must route through different VPCEs for environment isolation (prod vs. dev, compliance boundaries, etc.)
+
+### Scenario C — On-Prem: Forward Specific Workspace Domains
+- **Purpose:** Show targeted forwarding for a single workspace and its associated domains
+- **Flow:** Same as Scenario A but the conditional forwarders target specific domains instead of the wildcard: `<workspace-name>.cloud.databricks.com`, `dbc-dp-<workspace-id>.cloud.databricks.com` (data plane relay), and any Databricks Apps domains (`<app-name>.aws.databricksapps.com`) tied to the workspace
+- **Key difference:** More surgical DNS configuration; other Databricks workspaces resolve publicly. Requires forwarding multiple domains per workspace (workspace URL, data plane relay, each app). Diagram highlights the forwarding rule difference.
 
 ## 5. Page Layout & UX
 
@@ -54,7 +54,7 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 |  Header: Databricks logo + title                 |
 +--------------------------------------------------+
 |  Scenario Selector (segmented control)           |
-|  [ Public Path | Wildcard Fwd | Workspace Fwd | Per-WS PHZ ] |
+|  [ Public Path | Wildcard Fwd | Per-WS PHZ | Workspace Fwd ] |
 +--------------------------------------------------+
 |  Animated Diagram Area                           |
 |  (SVG/CSS, updates per scenario)                 |
