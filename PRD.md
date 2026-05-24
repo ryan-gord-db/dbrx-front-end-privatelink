@@ -30,10 +30,10 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 - **Flow:** On-prem client -> corporate DNS server -> public DNS (recursive resolution) -> public IP returned to client -> internet -> Databricks control plane
 - **Why it matters:** Gives the viewer a reference point so they can see exactly what changes with each PrivateLink scenario
 
-### Scenario A — On-Prem: Forward `*.cloud.databricks.com`
+### Scenario A — On-Prem: Forward `*.cloud.databricks.com` + `*.aws.databricksapps.com`
 - **Purpose:** Show wildcard DNS forwarding from on-premises to AWS
-- **Flow:** On-prem client -> on-prem DNS resolver -> conditional forwarder (`*.cloud.databricks.com`) -> Route 53 Inbound Resolver VPCE -> Route 53 Private Hosted Zone -> VPCE ENI private IP -> Databricks control plane
-- **Key components:** On-prem DNS server, conditional forwarding rule, Direct Connect / VPN, Route 53 Inbound Resolver endpoint (VPCE), Route 53 PHZ, front-end workspace VPCE
+- **Flow:** On-prem client -> on-prem DNS resolver -> conditional forwarders (`*.cloud.databricks.com` and `*.aws.databricksapps.com`) -> Route 53 Inbound Resolver VPCE -> Route 53 Private Hosted Zone -> VPCE ENI private IP -> Databricks control plane
+- **Key components:** On-prem DNS server, two conditional forwarding rules (one per domain), Direct Connect / VPN, Route 53 Inbound Resolver endpoint (VPCE), Route 53 PHZ, front-end workspace VPCE
 
 ### Scenario B — On-Prem: Forward Specific Workspace Domains
 - **Purpose:** Show targeted forwarding for a single workspace and its associated domains
