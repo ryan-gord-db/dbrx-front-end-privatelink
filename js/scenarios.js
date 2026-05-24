@@ -57,8 +57,8 @@ dig +short my-wksp.cloud.databricks.com`,
       nodes: [
         { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                    x: 60,  y: 120, w: 110, h: 48, zone: 'onprem' },
         { id: 'corpdns',  label: 'Corporate DNS',        sub: 'No conditional fwd',               x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
-        { id: 'pubdns',   label: 'Public DNS',           sub: 'Recursive Resolver',               x: 380, y: 130, w: 120, h: 48, zone: 'internet' },
-        { id: 'inet',     label: 'Internet',             sub: 'HTTPS over public internet',       x: 380, y: 250, w: 120, h: 48, zone: 'internet', style: 'comp-box-internet' },
+        { id: 'pubdns',   label: 'Public DNS',           sub: 'Recursive Resolver',               x: 380, y: 250, w: 120, h: 48, zone: 'internet' },
+        { id: 'inet',     label: 'Internet',             sub: 'HTTPS over public internet',       x: 380, y: 130, w: 120, h: 48, zone: 'internet', style: 'comp-box-internet' },
         { id: 'cp',       label: 'Control Plane',        sub: 'my-wksp.cloud.databricks.com',   x: 725, y: 190, w: 140, h: 50, zone: 'databricks', style: 'comp-box-db' },
       ],
       connections: [
