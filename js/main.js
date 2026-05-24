@@ -19,7 +19,6 @@
   const summaryTitle     = $('#summaryTitle');
   const summaryOverview  = $('#summaryOverview');
   const summarySteps     = $('#summarySteps');
-  const componentBody    = $('#componentTableBody');
   const stepControls     = $('#stepControls');
   const stepIndicator    = $('#stepIndicator');
   const stepPrev         = $('#stepPrev');
@@ -59,20 +58,6 @@
       summarySteps.appendChild(li);
     });
 
-    // Component table
-    componentBody.innerHTML = '';
-    s.components.forEach(comp => {
-      const tr = document.createElement('tr');
-      const linkHtml = comp.link
-        ? ` <a href="${comp.link}" target="_blank" rel="noopener">See docs &rarr;</a>`
-        : '';
-      tr.innerHTML = `
-        <td><strong>${comp.name}</strong></td>
-        <td>${comp.purpose}</td>
-        <td>${comp.config}${linkHtml}</td>
-      `;
-      componentBody.appendChild(tr);
-    });
   }
 
   /* ----- Step-through mode helpers ----- */

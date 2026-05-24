@@ -125,8 +125,8 @@ const DiagramRenderer = (() => {
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const baseOffset = Math.min(len * 0.15, 25);
-    const spreadFactor = (idx % 3 - 1) * 6; // spread parallel conns
+    const baseOffset = Math.min(len * 0.18, 30);
+    const spreadFactor = (idx % 5 - 2) * 10; // wider spread for parallel conns
     const offset = baseOffset + spreadFactor;
     const nx = -dy / len * offset;
     const ny = dx / len * offset;
@@ -141,10 +141,21 @@ const DiagramRenderer = (() => {
       id: pathId,
     }));
 
-    // Label offset from midpoint (above the curve)
+    // Label with white background for readability
     if (conn.label) {
+      const labelX = cx_;
+      const labelY = cy_ - 12;
+      // Background rect sized to text (approximate)
+      const textLen = conn.label.length * 5.5 + 8;
+      g.appendChild(el('rect', {
+        x: labelX - textLen / 2, y: labelY - 7,
+        width: textLen, height: 14,
+        rx: 3,
+        fill: '#fff', 'fill-opacity': '0.92',
+        stroke: 'none',
+      }));
       g.appendChild(el('text', {
-        x: cx_, y: cy_ - 12, class: 'conn-label',
+        x: labelX, y: labelY, class: 'conn-label',
       }, conn.label));
     }
 
@@ -160,9 +171,12 @@ const DiagramRenderer = (() => {
     });
     g.appendChild(packet);
 
-    // Step badge
+    // Step badge with white halo for readability
     const badgeCx = p1.x + (cx_ - p1.x) * 0.3;
     const badgeCy = p1.y + (cy_ - p1.y) * 0.3 - 12;
+    g.appendChild(el('circle', {
+      cx: badgeCx, cy: badgeCy, r: 10, fill: '#fff', 'fill-opacity': '0.9', stroke: 'none',
+    }));
     g.appendChild(el('circle', {
       cx: badgeCx, cy: badgeCy, r: 8, class: 'step-badge-bg',
     }));
