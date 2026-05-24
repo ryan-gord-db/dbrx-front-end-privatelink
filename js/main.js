@@ -82,22 +82,54 @@
     const s = SCENARIOS[currentScenario];
     const total = DiagramRenderer.getStepCount(s);
     DiagramRenderer.pauseAnimations(diagramContainer);
-    DiagramRenderer.showStep(diagramContainer, currentStep, total);
+    DiagramRenderer.showStep(diagramContainer, currentStep, total, s);
     stepIndicator.textContent = `Step ${currentStep} / ${total}`;
     stepPrev.disabled = currentStep <= 1;
     stepNext.disabled = currentStep >= total;
+
+    // Focus the text summary on the active step
+    highlightStepText(currentStep, s);
+  }
+
+  function highlightStepText(stepNum, scenario) {
+    const stepData = scenario.steps.find(st => st.id === stepNum);
+    if (!stepData) return;
+
+    // Show current step detail prominently in the overview area
+    summaryOverview.innerHTML =
+      `<span class="step-focus-badge">Step ${stepData.id}</span> ` +
+      `<strong>${stepData.label}</strong> — ${stepData.detail}`;
+
+    // Highlight the corresponding list item
+    const items = summarySteps.querySelectorAll('li');
+    items.forEach((li, idx) => {
+      const itemStep = idx + 1;
+      li.classList.toggle('step-text-active', itemStep === stepNum);
+      li.classList.toggle('step-text-dimmed', itemStep !== stepNum);
+    });
+  }
+
+  function resetStepText(scenario) {
+    summaryOverview.innerHTML = scenario.overview;
+    const items = summarySteps.querySelectorAll('li');
+    items.forEach(li => {
+      li.classList.remove('step-text-active', 'step-text-dimmed');
+    });
   }
 
   function setAnimMode(mode) {
     animMode = mode;
     $$('.anim-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
 
+    const detailsEl = document.querySelector('.detail-expander');
     if (mode === 'auto') {
       stepControls.classList.add('hidden');
       DiagramRenderer.showAllSteps(diagramContainer);
       DiagramRenderer.resumeAnimations(diagramContainer);
+      resetStepText(SCENARIOS[currentScenario]);
     } else {
       stepControls.classList.remove('hidden');
+      if (detailsEl) detailsEl.setAttribute('open', '');
       currentStep = 1;
       applyStepMode();
     }

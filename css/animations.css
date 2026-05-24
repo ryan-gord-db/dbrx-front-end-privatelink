@@ -80,15 +80,26 @@
   fill: none;
 }
 
-/* Active step highlight */
-.step-active {
-  animation: pulse-highlight 1.5s ease-in-out infinite;
+/* Active step highlight (nodes) */
+.node-group.step-active rect {
+  stroke: var(--db-blue, #137CBD);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px rgba(19, 124, 189, 0.45));
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
+.node-group.step-active {
+  opacity: 1;
+  transition: opacity 0.3s ease;
 }
 
-/* Dimmed (inactive step in step-through) */
+/* Dimmed (inactive in step-through) */
 .step-dimmed {
   opacity: 0.15;
   transition: opacity 0.3s ease;
+}
+.node-group.step-dimmed rect {
+  filter: none;
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
 /* Visible step */
@@ -101,6 +112,9 @@
 /* Paused animations (step-through mode) */
 .anim-paused * {
   animation-play-state: paused !important;
+}
+.anim-paused .step-visible {
+  animation-play-state: running !important;
 }
 
 /* --- Component base styles --- */

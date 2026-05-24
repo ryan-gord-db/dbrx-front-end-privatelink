@@ -304,6 +304,31 @@ a:hover { text-decoration: underline; }
   color: var(--db-dark);
 }
 
+/* --- Step-through text focus --- */
+.resolution-steps li.step-text-active {
+  background: rgba(19, 124, 189, 0.08);
+  border-left: 3px solid var(--db-blue);
+  padding-left: 0.75rem;
+  margin-left: -1rem;
+  border-radius: 4px;
+  transition: background 0.3s ease, opacity 0.3s ease;
+}
+.resolution-steps li.step-text-dimmed {
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+.step-focus-badge {
+  display: inline-block;
+  background: var(--db-blue);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
 /* --- Config Snippets --- */
 .config-section {
   background: #fff;

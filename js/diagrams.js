@@ -120,13 +120,11 @@ const DiagramRenderer = (() => {
     // Curved path (slight arc for visual clarity)
     const mx = (p1.x + p2.x) / 2;
     const my = (p1.y + p2.y) / 2;
-    // Offset the midpoint perpendicular to the line for a slight curve
-    // Use idx to spread parallel connections apart
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const len = Math.sqrt(dx * dx + dy * dy) || 1;
     const baseOffset = Math.min(len * 0.18, 30);
-    const spreadFactor = (idx % 5 - 2) * 10; // wider spread for parallel conns
+    const spreadFactor = (idx % 5 - 2) * 10;
     const offset = baseOffset + spreadFactor;
     const nx = -dy / len * offset;
     const ny = dx / len * offset;
@@ -145,7 +143,6 @@ const DiagramRenderer = (() => {
     if (conn.label) {
       const labelX = cx_;
       const labelY = cy_ - 12;
-      // Background rect sized to text (approximate)
       const textLen = conn.label.length * 5.5 + 8;
       g.appendChild(el('rect', {
         x: labelX - textLen / 2, y: labelY - 7,
@@ -171,20 +168,59 @@ const DiagramRenderer = (() => {
     });
     g.appendChild(packet);
 
-    // Step badge with white halo for readability
-    const badgeCx = p1.x + (cx_ - p1.x) * 0.3;
-    const badgeCy = p1.y + (cy_ - p1.y) * 0.3 - 12;
-    g.appendChild(el('circle', {
-      cx: badgeCx, cy: badgeCy, r: 10, fill: '#fff', 'fill-opacity': '0.9', stroke: 'none',
-    }));
-    g.appendChild(el('circle', {
-      cx: badgeCx, cy: badgeCy, r: 8, class: 'step-badge-bg',
-    }));
-    g.appendChild(el('text', {
-      x: badgeCx, y: badgeCy, class: 'step-badge',
-    }, String(conn.step)));
-
     return g;
+  }
+
+  /* ----- Render step badges as a top layer (one per step number) ----- */
+  function renderBadges(diagram, nodes) {
+    const badgeLayer = el('g', { class: 'badge-layer' });
+    const rendered = new Set();
+
+    diagram.connections.forEach((conn, idx) => {
+      if (rendered.has(conn.step)) return;
+      rendered.add(conn.step);
+
+      const fromNode = nodes[conn.from];
+      const toNode = nodes[conn.to];
+      if (!fromNode || !toNode) return;
+
+      const fromCentre_ = centre(fromNode);
+      const toCentre_ = centre(toNode);
+      const p1 = edgePoint(fromNode, toCentre_);
+      const p2 = edgePoint(toNode, fromCentre_);
+
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const baseOffset = Math.min(len * 0.18, 30);
+      const spreadFactor = (idx % 5 - 2) * 10;
+      const off = baseOffset + spreadFactor;
+      const nx = -dy / len * off;
+      const ny = dx / len * off;
+      const cx_ = mx + nx;
+      const cy_ = my + ny;
+
+      // badgePos: 0–1 interpolation along the path from p1 toward curve control point
+      const pos = conn.badgePos !== undefined ? conn.badgePos : 0.3;
+      const badgeCx = p1.x + (cx_ - p1.x) * pos;
+      const badgeCy = p1.y + (cy_ - p1.y) * pos - 12;
+
+      const bg = el('g', { class: 'badge-group', 'data-badge-step': conn.step });
+      bg.appendChild(el('circle', {
+        cx: badgeCx, cy: badgeCy, r: 10, fill: '#fff', 'fill-opacity': '0.9', stroke: 'none',
+      }));
+      bg.appendChild(el('circle', {
+        cx: badgeCx, cy: badgeCy, r: 8, class: 'step-badge-bg',
+      }));
+      bg.appendChild(el('text', {
+        x: badgeCx, y: badgeCy, class: 'step-badge',
+      }, String(conn.step)));
+      badgeLayer.appendChild(bg);
+    });
+
+    return badgeLayer;
   }
 
   /* ----- Render legend ----- */
@@ -231,17 +267,20 @@ const DiagramRenderer = (() => {
       role: 'img',
     });
 
-    // Render zones
+    // Render zones (background)
     diagram.zones.forEach(z => svg.appendChild(renderZone(z)));
 
-    // Render connections (behind nodes)
+    // Render connections (lines, labels, packets)
     diagram.connections.forEach((c, i) => {
       const cEl = renderConnection(c, nodes, i);
       if (cEl) svg.appendChild(cEl);
     });
 
-    // Render nodes (on top)
+    // Render nodes
     diagram.nodes.forEach(n => svg.appendChild(renderNode(n)));
+
+    // Render step badges on top of everything
+    svg.appendChild(renderBadges(diagram, nodes));
 
     // Legend
     svg.appendChild(renderLegend(vbH - 20));
@@ -251,7 +290,7 @@ const DiagramRenderer = (() => {
   }
 
   /* ----- Step-through mode: show only one step ----- */
-  function showStep(container, stepNum, totalSteps) {
+  function showStep(container, stepNum, totalSteps, scenario) {
     const conns = container.querySelectorAll('.conn-group');
     conns.forEach(g => {
       const s = parseInt(g.getAttribute('data-step'), 10);
@@ -264,10 +303,42 @@ const DiagramRenderer = (() => {
       }
     });
 
-    // Highlight active nodes for this step
+    // Dim/show step badges
+    const badges = container.querySelectorAll('.badge-group');
+    badges.forEach(bg => {
+      const s = parseInt(bg.getAttribute('data-badge-step'), 10);
+      if (s === stepNum) {
+        bg.classList.remove('step-dimmed');
+        bg.classList.add('step-visible');
+      } else {
+        bg.classList.remove('step-visible');
+        bg.classList.add('step-dimmed');
+      }
+    });
+
+    // Determine which nodes are involved in the current step
+    const activeNodeIds = new Set();
+    if (scenario && scenario.diagram) {
+      scenario.diagram.connections.forEach(c => {
+        if (c.step === stepNum) {
+          activeNodeIds.add(c.from);
+          activeNodeIds.add(c.to);
+        }
+      });
+    }
+
+    // Highlight active nodes, dim the rest
     const nodes = container.querySelectorAll('.node-group');
     nodes.forEach(n => {
+      const nodeId = n.getAttribute('data-node');
       n.classList.remove('step-active', 'step-dimmed');
+      if (activeNodeIds.size > 0) {
+        if (activeNodeIds.has(nodeId)) {
+          n.classList.add('step-active');
+        } else {
+          n.classList.add('step-dimmed');
+        }
+      }
     });
   }
 
@@ -275,6 +346,9 @@ const DiagramRenderer = (() => {
   function showAllSteps(container) {
     container.querySelectorAll('.conn-group').forEach(g => {
       g.classList.remove('step-dimmed', 'step-visible');
+    });
+    container.querySelectorAll('.badge-group').forEach(bg => {
+      bg.classList.remove('step-dimmed', 'step-visible');
     });
     container.querySelectorAll('.node-group').forEach(n => {
       n.classList.remove('step-active', 'step-dimmed');
