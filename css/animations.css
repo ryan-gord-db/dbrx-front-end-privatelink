@@ -47,7 +47,7 @@
 .packet-dns-response {
   fill: #00A972;
   offset-rotate: 0deg;
-  animation: packet-flow-reverse 2.5s ease-in-out infinite;
+  animation: packet-flow 2.5s ease-in-out infinite;
   animation-delay: 1.2s;
 }
 

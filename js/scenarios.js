@@ -12,22 +12,25 @@ const SCENARIOS = {
     id: 'public',
     title: 'Public Path (No PrivateLink)',
     overview:
-      'Without PrivateLink, DNS queries for your workspace URL resolve to a public IP address via standard public DNS. ' +
-      'Traffic from the client traverses the internet to reach the Databricks control plane. ' +
-      'This is the default configuration and requires no additional networking setup.',
+      'Without PrivateLink, the on-prem client queries the corporate DNS server, which forwards or recurses through public DNS ' +
+      'to resolve the workspace URL to a public IP address. Traffic from the client then traverses the internet to reach the ' +
+      'Databricks control plane. This is the default configuration and requires no additional networking setup.',
 
     steps: [
-      { id: 1, label: 'Client initiates DNS query', detail: 'The client (browser or CLI) queries its configured DNS resolver for <strong>workspace.cloud.databricks.com</strong>.' },
-      { id: 2, label: 'Public DNS resolution', detail: 'The resolver performs recursive resolution through the public DNS hierarchy, ultimately receiving a <strong>public IP address</strong> for the Databricks control plane.' },
-      { id: 3, label: 'HTTPS connection over internet', detail: 'The client establishes a TLS connection to the public IP. Traffic traverses the <strong>public internet</strong> to reach the Databricks control plane.' },
-      { id: 4, label: 'Databricks serves the request', detail: 'The Databricks control plane terminates TLS and serves the workspace UI or API response.' },
+      { id: 1, label: 'Client queries on-prem DNS',    detail: 'The client (browser or CLI) queries the <strong>corporate DNS server</strong> for <strong>workspace.cloud.databricks.com</strong>.' },
+      { id: 2, label: 'Corporate DNS forwards to public DNS', detail: 'The corporate DNS server has no conditional forwarder for this domain, so it recurses or forwards to <strong>public DNS</strong> (e.g., ISP resolver, 8.8.8.8).' },
+      { id: 3, label: 'Public DNS resolves to public IP', detail: 'Public DNS performs recursive resolution through the DNS hierarchy and returns a <strong>public IP address</strong> for the Databricks control plane back to the corporate DNS server.' },
+      { id: 4, label: 'DNS response returns to client', detail: 'The corporate DNS server returns the public IP to the client.' },
+      { id: 5, label: 'HTTPS connection over internet', detail: 'The client establishes a TLS connection to the public IP. Traffic traverses the <strong>public internet</strong> to reach the Databricks control plane.' },
+      { id: 6, label: 'Databricks serves the request',  detail: 'The Databricks control plane terminates TLS and serves the workspace UI or API response.' },
     ],
 
     components: [
-      { name: 'Client Device',             purpose: 'Originates DNS query and HTTPS request',                        config: 'Standard network configuration; uses corporate or ISP DNS resolver' },
-      { name: 'Public DNS Resolver',        purpose: 'Resolves workspace.cloud.databricks.com to a public IP',        config: 'Recursive resolver (corporate, ISP, or public like 8.8.8.8)' },
-      { name: 'Internet',                   purpose: 'Transport layer between client and Databricks',                 config: 'No special configuration; standard outbound HTTPS (443)' },
-      { name: 'Databricks Control Plane',   purpose: 'Hosts workspace UI and REST API',                               config: 'Public endpoint: workspace.cloud.databricks.com', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+      { name: 'Client Device',             purpose: 'Originates DNS query and HTTPS request from on-prem',          config: 'Uses corporate DNS server for name resolution' },
+      { name: 'Corporate DNS Server',       purpose: 'Receives client DNS queries; forwards to public DNS',          config: 'No conditional forwarder for cloud.databricks.com — resolves via standard recursion' },
+      { name: 'Public DNS',                 purpose: 'Resolves workspace.cloud.databricks.com to a public IP',       config: 'Recursive resolver (ISP or public like 8.8.8.8)' },
+      { name: 'Internet',                   purpose: 'Transport layer between on-prem client and Databricks',        config: 'No special configuration; standard outbound HTTPS (443)' },
+      { name: 'Databricks Control Plane',   purpose: 'Hosts workspace UI and REST API',                              config: 'Public endpoint: workspace.cloud.databricks.com', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
     ],
 
     configs: [
@@ -46,21 +49,24 @@ dig +short workspace.cloud.databricks.com`,
     // Diagram layout — see diagrams.js for rendering
     diagram: {
       zones: [
-        { id: 'onprem', label: 'Client Network', x: 30, y: 50, w: 200, h: 280, style: 'comp-box-onprem' },
-        { id: 'internet', label: 'Internet / Public DNS', x: 330, y: 80, w: 240, h: 220, style: 'comp-box-internet' },
-        { id: 'databricks', label: 'Databricks', x: 670, y: 50, w: 240, h: 280, style: 'comp-box-db' },
+        { id: 'onprem', label: 'On-Premises Network', x: 20, y: 50, w: 190, h: 300, style: 'comp-box-onprem' },
+        { id: 'internet', label: 'Internet / Public DNS', x: 310, y: 80, w: 260, h: 240, style: 'comp-box-internet' },
+        { id: 'databricks', label: 'Databricks', x: 670, y: 50, w: 240, h: 300, style: 'comp-box-db' },
       ],
       nodes: [
-        { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                    x: 75,  y: 180, w: 110, h: 50, zone: 'onprem' },
-        { id: 'pubdns',   label: 'Public DNS',           sub: 'Recursive Resolver',               x: 395, y: 130, w: 120, h: 50, zone: 'internet' },
-        { id: 'inet',     label: 'Internet',             sub: 'HTTPS over public internet',       x: 395, y: 230, w: 120, h: 50, zone: 'internet', style: 'comp-box-internet' },
-        { id: 'cp',       label: 'Control Plane',        sub: 'workspace.cloud.databricks.com',   x: 725, y: 180, w: 140, h: 50, zone: 'databricks', style: 'comp-box-db' },
+        { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                    x: 60,  y: 120, w: 110, h: 48, zone: 'onprem' },
+        { id: 'corpdns',  label: 'Corporate DNS',        sub: 'No conditional fwd',               x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
+        { id: 'pubdns',   label: 'Public DNS',           sub: 'Recursive Resolver',               x: 380, y: 130, w: 120, h: 48, zone: 'internet' },
+        { id: 'inet',     label: 'Internet',             sub: 'HTTPS over public internet',       x: 380, y: 250, w: 120, h: 48, zone: 'internet', style: 'comp-box-internet' },
+        { id: 'cp',       label: 'Control Plane',        sub: 'workspace.cloud.databricks.com',   x: 725, y: 190, w: 140, h: 50, zone: 'databricks', style: 'comp-box-db' },
       ],
       connections: [
-        { from: 'client', to: 'pubdns', type: 'dns-query',    step: 1, label: 'DNS query' },
-        { from: 'pubdns', to: 'client', type: 'dns-response', step: 2, label: 'Public IP' },
-        { from: 'client', to: 'inet',   type: 'https',        step: 3, label: '' },
-        { from: 'inet',   to: 'cp',     type: 'https',        step: 3, label: 'HTTPS :443' },
+        { from: 'client',  to: 'corpdns', type: 'dns-query',    step: 1, label: 'DNS query' },
+        { from: 'corpdns', to: 'pubdns',  type: 'dns-query',    step: 2, label: 'Forward / recurse' },
+        { from: 'pubdns',  to: 'corpdns', type: 'dns-response', step: 3, label: 'Public IP' },
+        { from: 'corpdns', to: 'client',  type: 'dns-response', step: 4, label: 'Public IP' },
+        { from: 'client',  to: 'inet',    type: 'https',        step: 5, label: '' },
+        { from: 'inet',    to: 'cp',      type: 'https',        step: 5, label: 'HTTPS :443' },
       ],
     },
   },
@@ -74,16 +80,18 @@ dig +short workspace.cloud.databricks.com`,
     overview:
       'The on-premises DNS server is configured with a conditional forwarder for <code>*.cloud.databricks.com</code>, ' +
       'sending all Databricks DNS queries over Direct Connect or VPN to Route 53 Inbound Resolver endpoints in the customer VPC. ' +
-      'Route 53 resolves the query via a Private Hosted Zone, returning the private IP of the front-end VPCE. ' +
+      'Route 53 resolves the query via a Private Hosted Zone (<code>privatelink.cloud.databricks.com</code>), ' +
+      'returning the private IP of the front-end VPCE via an A record for the region (e.g., <code>nvirginia.privatelink.cloud.databricks.com</code>). ' +
       'All traffic stays on private networks — nothing traverses the public internet.',
 
     steps: [
       { id: 1, label: 'Client queries on-prem DNS',           detail: 'The client queries the corporate DNS server for <strong>workspace.cloud.databricks.com</strong>.' },
       { id: 2, label: 'Conditional forwarder matches',         detail: 'The corporate DNS server matches the query against the conditional forwarding rule for <strong>*.cloud.databricks.com</strong> and forwards it over <strong>Direct Connect / VPN</strong>.' },
       { id: 3, label: 'Route 53 Inbound Resolver receives query', detail: 'The DNS query arrives at the <strong>Route 53 Inbound Resolver endpoint</strong> ENIs in the customer VPC.' },
-      { id: 4, label: 'Route 53 resolves via PHZ',             detail: 'Route 53 checks the <strong>Private Hosted Zone</strong> associated with the VPC and returns the <strong>private IP</strong> of the front-end VPCE ENI.' },
-      { id: 5, label: 'DNS response returns to client',        detail: 'The private IP address is returned back through the Inbound Resolver, over DX/VPN, through the corporate DNS server, to the client.' },
-      { id: 6, label: 'HTTPS via VPCE to control plane',       detail: 'The client sends HTTPS traffic to the private IP. The request enters the VPC via DX/VPN, hits the <strong>front-end VPCE ENI</strong>, and is forwarded through the <strong>AWS PrivateLink</strong> tunnel to the Databricks control plane.' },
+      { id: 4, label: 'Public CNAME redirects to privatelink domain', detail: 'Databricks public DNS returns a <strong>CNAME</strong> from <strong>workspace.cloud.databricks.com</strong> to <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong> (e.g., <code>nvirginia.privatelink.cloud.databricks.com</code>). This CNAME is what causes the query to match the Private Hosted Zone.' },
+      { id: 5, label: 'Route 53 resolves via PHZ',             detail: 'Because the VPC has an associated PHZ for <strong>privatelink.cloud.databricks.com</strong>, Route 53 intercepts the CNAME target and resolves the <strong>A record</strong> for <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong>, returning the <strong>private IP</strong> of the front-end VPCE ENI.' },
+      { id: 6, label: 'DNS response returns to client',        detail: 'The private IP address is returned back through the Inbound Resolver, over DX/VPN, through the corporate DNS server, to the client.' },
+      { id: 7, label: 'HTTPS via VPCE to control plane',       detail: 'The client sends HTTPS traffic to the private IP. The request enters the VPC via DX/VPN, hits the <strong>front-end VPCE ENI</strong>, and is forwarded through the <strong>AWS PrivateLink</strong> tunnel to the Databricks control plane.' },
     ],
 
     components: [
@@ -91,8 +99,8 @@ dig +short workspace.cloud.databricks.com`,
       { name: 'Corporate DNS Server',        purpose: 'Forwards Databricks queries to Route 53 Inbound Resolver',   config: 'Conditional forwarder: *.cloud.databricks.com -> Inbound Resolver ENI IPs' },
       { name: 'Direct Connect / VPN',        purpose: 'Private network link between on-prem and AWS VPC',           config: 'Must allow DNS (UDP/TCP 53) and HTTPS (TCP 443)', link: 'https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html' },
       { name: 'Route 53 Inbound Resolver',   purpose: 'Receives forwarded DNS queries inside the VPC',              config: 'Inbound endpoint with ENIs in VPC subnets; security group allows port 53', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-getting-started.html' },
-      { name: 'Route 53 Private Hosted Zone', purpose: 'Maps workspace FQDN to VPCE private IP',                   config: 'Zone: cloud.databricks.com; CNAME or ALIAS to VPCE DNS name; associated with VPC', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
-      { name: 'Front-End VPCE',              purpose: 'Interface endpoint providing private access to Databricks',   config: 'Service: com.amazonaws.vpce.<region>.databricks-workspace; ENI in VPC subnet', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+      { name: 'Route 53 Private Hosted Zone', purpose: 'Maps region hostname to VPCE private IP',                   config: 'Zone: privatelink.cloud.databricks.com; A record for &lt;region&gt;.privatelink.cloud.databricks.com pointing to VPCE ENI IP (e.g., nvirginia, ohio, frankfurt, tokyo)', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
+      { name: 'Front-End VPCE',              purpose: 'Interface endpoint providing private access to Databricks',   config: 'Service: com.amazonaws.vpce.&lt;region&gt;.databricks-workspace; ENI in VPC subnet', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
       { name: 'Databricks Control Plane',    purpose: 'Hosts workspace UI and REST API',                            config: 'VPCE service on Databricks side; accessible via PrivateLink', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
     ],
 
@@ -181,7 +189,7 @@ resource "aws_route53_record" "workspace" {
         { id: 'corpdns',  label: 'Corporate DNS',        sub: '*.cloud.databricks.com →',          x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
         { id: 'dxvpn',    label: 'DX / VPN',             sub: 'Private link',                      x: 230, y: 195, w: 80,  h: 44, zone: null },
         { id: 'resolver', label: 'R53 Inbound',          sub: 'Resolver Endpoint',                 x: 380, y: 270, w: 120, h: 48, zone: 'vpc' },
-        { id: 'phz',      label: 'Route 53 PHZ',         sub: 'cloud.databricks.com',              x: 380, y: 120, w: 120, h: 48, zone: 'vpc' },
+        { id: 'phz',      label: 'Route 53 PHZ',         sub: 'privatelink.cloud.databricks.com',  x: 370, y: 110, w: 150, h: 48, zone: 'vpc' },
         { id: 'vpce',     label: 'Front-End VPCE',       sub: 'ENI: 10.0.x.x',                    x: 555, y: 195, w: 120, h: 48, zone: 'vpc' },
         { id: 'cp',       label: 'Control Plane',        sub: 'workspace.cloud.databricks.com',    x: 780, y: 195, w: 130, h: 48, zone: 'databricks', style: 'comp-box-db' },
       ],
@@ -189,14 +197,14 @@ resource "aws_route53_record" "workspace" {
         { from: 'client',   to: 'corpdns',  type: 'dns-query',    step: 1, label: 'DNS query' },
         { from: 'corpdns',  to: 'dxvpn',    type: 'dns-query',    step: 2, label: 'Fwd *.cloud...' },
         { from: 'dxvpn',    to: 'resolver',  type: 'dns-query',    step: 3, label: '' },
-        { from: 'resolver', to: 'phz',       type: 'dns-query',    step: 4, label: 'Resolve' },
-        { from: 'phz',      to: 'resolver',  type: 'dns-response', step: 4, label: 'Private IP' },
-        { from: 'resolver', to: 'dxvpn',     type: 'dns-response', step: 5, label: '' },
-        { from: 'dxvpn',    to: 'corpdns',   type: 'dns-response', step: 5, label: '' },
-        { from: 'corpdns',  to: 'client',    type: 'dns-response', step: 5, label: '10.0.x.x' },
-        { from: 'client',   to: 'dxvpn',     type: 'https',        step: 6, label: '' },
-        { from: 'dxvpn',    to: 'vpce',      type: 'https',        step: 6, label: '' },
-        { from: 'vpce',     to: 'cp',        type: 'https',        step: 6, label: 'PrivateLink' },
+        { from: 'resolver', to: 'phz',       type: 'dns-query',    step: 5, label: 'CNAME → PHZ' },
+        { from: 'phz',      to: 'resolver',  type: 'dns-response', step: 5, label: 'Private IP' },
+        { from: 'resolver', to: 'dxvpn',     type: 'dns-response', step: 6, label: '' },
+        { from: 'dxvpn',    to: 'corpdns',   type: 'dns-response', step: 6, label: '' },
+        { from: 'corpdns',  to: 'client',    type: 'dns-response', step: 6, label: '10.0.x.x' },
+        { from: 'client',   to: 'dxvpn',     type: 'https',        step: 7, label: '' },
+        { from: 'dxvpn',    to: 'vpce',      type: 'https',        step: 7, label: '' },
+        { from: 'vpce',     to: 'cp',        type: 'https',        step: 7, label: 'PrivateLink' },
       ],
     },
   },
@@ -211,15 +219,16 @@ resource "aws_route53_record" "workspace" {
       'Instead of forwarding all <code>*.cloud.databricks.com</code> queries, the on-prem DNS server has a conditional forwarder ' +
       'targeting only the specific workspace FQDN (e.g., <code>my-workspace.cloud.databricks.com</code>). ' +
       'This is more surgical — other Databricks workspaces still resolve via public DNS. ' +
-      'The rest of the flow is identical to the wildcard scenario: Route 53 Inbound Resolver, PHZ, VPCE, PrivateLink.',
+      'The rest of the flow is identical to the wildcard scenario: Route 53 Inbound Resolver, PHZ (<code>privatelink.cloud.databricks.com</code>) with a region A record, VPCE, PrivateLink.',
 
     steps: [
       { id: 1, label: 'Client queries on-prem DNS',           detail: 'The client queries the corporate DNS server for <strong>my-workspace.cloud.databricks.com</strong>.' },
       { id: 2, label: 'Conditional forwarder matches workspace FQDN', detail: 'The corporate DNS server matches the query against the conditional forwarding rule for <strong>my-workspace.cloud.databricks.com</strong> specifically (not a wildcard). Queries for other workspaces resolve via public DNS.' },
       { id: 3, label: 'Route 53 Inbound Resolver receives query', detail: 'The DNS query arrives at the <strong>Route 53 Inbound Resolver endpoint</strong> ENIs in the customer VPC via Direct Connect / VPN.' },
-      { id: 4, label: 'Route 53 resolves via PHZ',             detail: 'Route 53 checks the <strong>Private Hosted Zone</strong> and returns the <strong>private IP</strong> of the front-end VPCE ENI.' },
-      { id: 5, label: 'DNS response returns to client',        detail: 'The private IP address travels back: Inbound Resolver → DX/VPN → corporate DNS → client.' },
-      { id: 6, label: 'HTTPS via VPCE to control plane',       detail: 'The client sends HTTPS traffic to the private IP. Traffic flows over DX/VPN to the <strong>front-end VPCE ENI</strong>, then through <strong>AWS PrivateLink</strong> to the Databricks control plane.' },
+      { id: 4, label: 'Public CNAME redirects to privatelink domain', detail: 'Databricks public DNS returns a <strong>CNAME</strong> from <strong>my-workspace.cloud.databricks.com</strong> to <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong> (e.g., <code>nvirginia.privatelink.cloud.databricks.com</code>). This CNAME is what causes the query to match the Private Hosted Zone.' },
+      { id: 5, label: 'Route 53 resolves via PHZ',             detail: 'Because the VPC has an associated PHZ for <strong>privatelink.cloud.databricks.com</strong>, Route 53 intercepts the CNAME target and resolves the <strong>A record</strong> for <strong>&lt;region&gt;.privatelink.cloud.databricks.com</strong>, returning the <strong>private IP</strong> of the front-end VPCE ENI.' },
+      { id: 6, label: 'DNS response returns to client',        detail: 'The private IP address travels back: Inbound Resolver → DX/VPN → corporate DNS → client.' },
+      { id: 7, label: 'HTTPS via VPCE to control plane',       detail: 'The client sends HTTPS traffic to the private IP. Traffic flows over DX/VPN to the <strong>front-end VPCE ENI</strong>, then through <strong>AWS PrivateLink</strong> to the Databricks control plane.' },
     ],
 
     components: [
@@ -227,7 +236,7 @@ resource "aws_route53_record" "workspace" {
       { name: 'Corporate DNS Server',        purpose: 'Forwards only the target workspace query to Route 53',       config: 'Conditional forwarder: my-workspace.cloud.databricks.com -> Inbound Resolver ENI IPs (NOT wildcard)' },
       { name: 'Direct Connect / VPN',        purpose: 'Private network link between on-prem and AWS VPC',           config: 'Must allow DNS (UDP/TCP 53) and HTTPS (TCP 443)', link: 'https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html' },
       { name: 'Route 53 Inbound Resolver',   purpose: 'Receives forwarded DNS queries inside the VPC',              config: 'Same as wildcard scenario — no per-workspace config needed', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-getting-started.html' },
-      { name: 'Route 53 Private Hosted Zone', purpose: 'Maps workspace FQDN to VPCE private IP',                   config: 'Zone: cloud.databricks.com; record for my-workspace.cloud.databricks.com', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
+      { name: 'Route 53 Private Hosted Zone', purpose: 'Maps region hostname to VPCE private IP',                   config: 'Zone: privatelink.cloud.databricks.com; A record for &lt;region&gt;.privatelink.cloud.databricks.com (e.g., nvirginia, ohio, frankfurt, tokyo)', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
       { name: 'Front-End VPCE',              purpose: 'Interface endpoint providing private access to Databricks',   config: 'Same VPCE as wildcard scenario — shared across workspaces', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
       { name: 'Databricks Control Plane',    purpose: 'Hosts workspace UI and REST API',                            config: 'Accessible via PrivateLink; workspace-specific URL', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
     ],
@@ -285,7 +294,7 @@ Add-DnsServerConditionalForwarderZone \`
         { id: 'corpdns',  label: 'Corporate DNS',        sub: 'my-workspace.cloud... →',                x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
         { id: 'dxvpn',    label: 'DX / VPN',             sub: 'Private link',                           x: 230, y: 195, w: 80,  h: 44, zone: null },
         { id: 'resolver', label: 'R53 Inbound',          sub: 'Resolver Endpoint',                      x: 380, y: 270, w: 120, h: 48, zone: 'vpc' },
-        { id: 'phz',      label: 'Route 53 PHZ',         sub: 'cloud.databricks.com',                   x: 380, y: 120, w: 120, h: 48, zone: 'vpc' },
+        { id: 'phz',      label: 'Route 53 PHZ',         sub: 'privatelink.cloud.databricks.com',       x: 370, y: 110, w: 150, h: 48, zone: 'vpc' },
         { id: 'vpce',     label: 'Front-End VPCE',       sub: 'ENI: 10.0.x.x',                         x: 555, y: 195, w: 120, h: 48, zone: 'vpc' },
         { id: 'cp',       label: 'Control Plane',        sub: 'my-workspace.cloud.databricks.com',      x: 780, y: 195, w: 130, h: 48, zone: 'databricks', style: 'comp-box-db' },
       ],
@@ -293,14 +302,14 @@ Add-DnsServerConditionalForwarderZone \`
         { from: 'client',   to: 'corpdns',  type: 'dns-query',    step: 1, label: 'DNS query' },
         { from: 'corpdns',  to: 'dxvpn',    type: 'dns-query',    step: 2, label: 'Fwd workspace' },
         { from: 'dxvpn',    to: 'resolver',  type: 'dns-query',    step: 3, label: '' },
-        { from: 'resolver', to: 'phz',       type: 'dns-query',    step: 4, label: 'Resolve' },
-        { from: 'phz',      to: 'resolver',  type: 'dns-response', step: 4, label: 'Private IP' },
-        { from: 'resolver', to: 'dxvpn',     type: 'dns-response', step: 5, label: '' },
-        { from: 'dxvpn',    to: 'corpdns',   type: 'dns-response', step: 5, label: '' },
-        { from: 'corpdns',  to: 'client',    type: 'dns-response', step: 5, label: '10.0.x.x' },
-        { from: 'client',   to: 'dxvpn',     type: 'https',        step: 6, label: '' },
-        { from: 'dxvpn',    to: 'vpce',      type: 'https',        step: 6, label: '' },
-        { from: 'vpce',     to: 'cp',        type: 'https',        step: 6, label: 'PrivateLink' },
+        { from: 'resolver', to: 'phz',       type: 'dns-query',    step: 5, label: 'CNAME → PHZ' },
+        { from: 'phz',      to: 'resolver',  type: 'dns-response', step: 5, label: 'Private IP' },
+        { from: 'resolver', to: 'dxvpn',     type: 'dns-response', step: 6, label: '' },
+        { from: 'dxvpn',    to: 'corpdns',   type: 'dns-response', step: 6, label: '' },
+        { from: 'corpdns',  to: 'client',    type: 'dns-response', step: 6, label: '10.0.x.x' },
+        { from: 'client',   to: 'dxvpn',     type: 'https',        step: 7, label: '' },
+        { from: 'dxvpn',    to: 'vpce',      type: 'https',        step: 7, label: '' },
+        { from: 'vpce',     to: 'cp',        type: 'https',        step: 7, label: 'PrivateLink' },
       ],
     },
   },

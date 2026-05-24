@@ -19,7 +19,6 @@
   const summaryTitle     = $('#summaryTitle');
   const summaryOverview  = $('#summaryOverview');
   const summarySteps     = $('#summarySteps');
-  const configSnippets   = $('#configSnippets');
   const componentBody    = $('#componentTableBody');
   const stepControls     = $('#stepControls');
   const stepIndicator    = $('#stepIndicator');
@@ -58,18 +57,6 @@
       const li = document.createElement('li');
       li.innerHTML = `<strong>Step ${step.id}: ${step.label}</strong> — ${step.detail}`;
       summarySteps.appendChild(li);
-    });
-
-    // Config snippets
-    configSnippets.innerHTML = '';
-    s.configs.forEach(cfg => {
-      const block = document.createElement('div');
-      block.className = 'config-block';
-      block.innerHTML = `
-        <h4>${cfg.title}</h4>
-        <pre><code class="lang-${cfg.lang}">${escapeHtml(cfg.code)}</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
-      `;
-      configSnippets.appendChild(block);
     });
 
     // Component table
@@ -156,20 +143,6 @@
     const detailsEls = $$('details');
     detailsEls.forEach(d => d.setAttribute('open', ''));
     window.print();
-  }
-
-  /* ----- Copy code ----- */
-  window.copyCode = function (btn) {
-    const code = btn.previousElementSibling.textContent;
-    navigator.clipboard.writeText(code).then(() => {
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-    });
-  };
-
-  /* ----- Util ----- */
-  function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /* ----- Event Listeners ----- */

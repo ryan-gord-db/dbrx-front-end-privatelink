@@ -27,7 +27,7 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 
 ### Scenario 0 — Public Path (Baseline)
 - **Purpose:** Establish the default resolution path when PrivateLink is not configured
-- **Flow:** Client -> public DNS -> Databricks public IP -> internet -> Databricks control plane
+- **Flow:** On-prem client -> corporate DNS server -> public DNS (recursive resolution) -> public IP returned to client -> internet -> Databricks control plane
 - **Why it matters:** Gives the viewer a reference point so they can see exactly what changes with each PrivateLink scenario
 
 ### Scenario A — On-Prem: Forward `*.cloud.databricks.com`
