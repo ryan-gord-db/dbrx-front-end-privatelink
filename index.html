@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Databricks Front-End PrivateLink — DNS &amp; Connectivity Explainer</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <img src="assets/databricks-logo.svg" alt="Databricks" class="logo" height="32">
+      <h1>Front-End PrivateLink Explainer</h1>
+    </div>
+  </header>
+
+  <!-- ===== Scenario Selector ===== -->
+  <nav class="scenario-nav" id="scenarioNav">
+    <div class="scenario-selector">
+      <button class="scenario-btn active" data-scenario="public">Public Path</button>
+      <button class="scenario-btn" data-scenario="wildcard">Wildcard Forward</button>
+      <button class="scenario-btn" data-scenario="workspace">Workspace Forward</button>
+    </div>
+    <div class="mode-controls">
+      <button class="mode-btn" id="compareToggle" title="Compare two scenarios side-by-side">Compare</button>
+      <button class="mode-btn" id="exportPdf" title="Print / export as PDF">Export PDF</button>
+    </div>
+  </nav>
+
+  <!-- ===== Compare Dropdowns (hidden by default) ===== -->
+  <div class="compare-bar hidden" id="compareBar">
+    <label>Left: <select id="compareLeft">
+      <option value="public">Public Path</option>
+      <option value="wildcard">Wildcard Forward</option>
+      <option value="workspace">Workspace Forward</option>
+    </select></label>
+    <label>Right: <select id="compareRight">
+      <option value="public">Public Path</option>
+      <option value="wildcard" selected>Wildcard Forward</option>
+      <option value="workspace">Workspace Forward</option>
+    </select></label>
+  </div>
+
+  <!-- ===== Main Content (single scenario view) ===== -->
+  <main class="content" id="singleView">
+
+    <!-- Diagram -->
+    <section class="diagram-section">
+      <div class="diagram-toolbar">
+        <div class="anim-toggle" id="animToggle">
+          <button class="anim-btn active" data-mode="auto">Auto</button>
+          <button class="anim-btn" data-mode="step">Step-through</button>
+        </div>
+        <div class="step-controls hidden" id="stepControls">
+          <button class="step-btn" id="stepPrev" disabled>&larr; Prev</button>
+          <span class="step-indicator" id="stepIndicator">Step 1 / 4</span>
+          <button class="step-btn" id="stepNext">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="diagram-container" id="diagramContainer">
+        <!-- SVG diagram rendered by diagrams.js -->
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="summary-section" id="summarySection">
+      <h2 id="summaryTitle"></h2>
+      <p id="summaryOverview" class="summary-overview"></p>
+      <details class="detail-expander">
+        <summary>Show detailed resolution steps</summary>
+        <ol id="summarySteps" class="resolution-steps"></ol>
+      </details>
+    </section>
+
+    <!-- Configuration Snippets -->
+    <section class="config-section">
+      <details class="detail-expander">
+        <summary>Show Configuration Snippets</summary>
+        <div id="configSnippets" class="config-snippets"></div>
+      </details>
+    </section>
+
+    <!-- Component Reference Table -->
+    <section class="table-section">
+      <h2>Component Reference</h2>
+      <table class="component-table">
+        <thead>
+          <tr><th>Component</th><th>Purpose</th><th>Key Configuration</th></tr>
+        </thead>
+        <tbody id="componentTableBody"></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- ===== Compare View (hidden by default) ===== -->
+  <main class="content compare-content hidden" id="compareView">
+    <div class="compare-panel" id="comparePanelLeft">
+      <h3 class="compare-label" id="compareLabelLeft"></h3>
+      <div class="diagram-container compare-diagram" id="compareDiagramLeft"></div>
+      <p class="summary-overview" id="compareOverviewLeft"></p>
+    </div>
+    <div class="compare-divider"></div>
+    <div class="compare-panel" id="comparePanelRight">
+      <h3 class="compare-label" id="compareLabelRight"></h3>
+      <div class="diagram-container compare-diagram" id="compareDiagramRight"></div>
+      <p class="summary-overview" id="compareOverviewRight"></p>
+    </div>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="site-footer">
+    <p>Databricks Front-End PrivateLink Reference &mdash; <a href="https://docs.databricks.com/en/security/network/classic/privatelink.html" target="_blank" rel="noopener">Official Documentation</a></p>
+  </footer>
+
+  <script src="js/scenarios.js"></script>
+  <script src="js/diagrams.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

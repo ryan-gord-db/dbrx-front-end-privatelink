@@ -1,0 +1,19 @@
+# Front-End PrivateLink Visual Explainer
+
+Read PRD.md before doing any work. It contains full requirements, scenarios, layout, and tech stack.
+
+## Quick Reference
+- Plain HTML/CSS/JS — no frameworks, no build step, no CDN dependencies
+- Animated inline SVG + CSS animations for diagrams
+- Single page with scenario selector that updates all content in-place
+- Three scenarios: Public Path, Wildcard DNS Fwd, Workspace DNS Fwd
+- Databricks-specific components (control plane, workspace URL, VPCE service)
+- Light Databricks branding (#FF3621 orange, #1B3139 dark, #00A972 green)
+- Desktop-optimized (1280px+ viewport)
+- GitHub Pages hosting
+- Two animation modes: auto-loop and step-through
+- Compare mode: side-by-side two-scenario comparison
+- PDF export via @media print + export button
+- Contextual links to official Databricks PrivateLink docs
+
+See CLAUDE.md for additional context. See PRD.md Section 7.1 for file structure.

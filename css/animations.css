@@ -1,0 +1,201 @@
+/* ============================================================
+   SVG Diagram Animations
+   ============================================================ */
+
+/* --- Packet dot moving along a path --- */
+@keyframes packet-flow {
+  0%   { offset-distance: 0%; opacity: 0; }
+  5%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes packet-flow-reverse {
+  0%   { offset-distance: 100%; opacity: 0; }
+  5%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 0%; opacity: 0; }
+}
+
+/* --- Dashed line drawing --- */
+@keyframes dash-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* --- Pulse on active component --- */
+@keyframes pulse-highlight {
+  0%, 100% { filter: drop-shadow(0 0 0px transparent); }
+  50%      { filter: drop-shadow(0 0 8px rgba(255, 54, 33, 0.5)); }
+}
+
+/* --- Fade in for step-through --- */
+@keyframes step-fade-in {
+  from { opacity: 0.15; }
+  to   { opacity: 1; }
+}
+
+/* --- Classes applied by diagrams.js --- */
+
+/* DNS query packet (blue dot) */
+.packet-dns-query {
+  fill: #137CBD;
+  offset-rotate: 0deg;
+  animation: packet-flow 2.5s ease-in-out infinite;
+}
+
+/* DNS response packet (green dot) */
+.packet-dns-response {
+  fill: #00A972;
+  offset-rotate: 0deg;
+  animation: packet-flow-reverse 2.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+/* HTTPS data packet (orange dot) */
+.packet-https {
+  fill: #FF3621;
+  offset-rotate: 0deg;
+  animation: packet-flow 3s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* Connection lines */
+.conn-dns-query {
+  stroke: #137CBD;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  fill: none;
+}
+
+.conn-dns-response {
+  stroke: #00A972;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  fill: none;
+}
+
+.conn-https {
+  stroke: #FF3621;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* Active step highlight */
+.step-active {
+  animation: pulse-highlight 1.5s ease-in-out infinite;
+}
+
+/* Dimmed (inactive step in step-through) */
+.step-dimmed {
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+}
+
+/* Visible step */
+.step-visible {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  animation: step-fade-in 0.4s ease;
+}
+
+/* Paused animations (step-through mode) */
+.anim-paused * {
+  animation-play-state: paused !important;
+}
+
+/* --- Component base styles --- */
+.comp-box {
+  fill: #fff;
+  stroke: #DCE0E5;
+  stroke-width: 1.5;
+  rx: 6;
+}
+
+.comp-box-db {
+  fill: #FFF5F3;
+  stroke: #FF3621;
+  stroke-width: 1.5;
+  rx: 6;
+}
+
+.comp-box-vpc {
+  fill: none;
+  stroke: #137CBD;
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+  rx: 8;
+}
+
+.comp-box-onprem {
+  fill: none;
+  stroke: #6B7785;
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+  rx: 8;
+}
+
+.comp-box-internet {
+  fill: #FFF9E6;
+  stroke: #D4A017;
+  stroke-width: 1.5;
+  rx: 6;
+}
+
+.comp-label {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  fill: #1B3139;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.comp-sublabel {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  fill: #6B7785;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.zone-label {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  fill: #6B7785;
+  text-anchor: start;
+  pointer-events: none;
+}
+
+.conn-label {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 9px;
+  fill: #6B7785;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* Legend items */
+.legend-item text {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 10px;
+  fill: #6B7785;
+}
+
+/* Step number badges */
+.step-badge {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  fill: #fff;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.step-badge-bg {
+  fill: #137CBD;
+  stroke: #fff;
+  stroke-width: 1;
+}

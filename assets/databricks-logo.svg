@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 32" fill="none">
+  <!-- Databricks logomark (simplified diamond) -->
+  <g transform="translate(0, 2)">
+    <path d="M14 0L28 8v5.6l-14 8-14-8V8L14 0z" fill="#FF3621"/>
+    <path d="M14 13.6L0 5.6v8l14 8 14-8v-8L14 13.6z" fill="#FF3621" opacity="0.7"/>
+    <path d="M14 21.6L0 13.6v4l14 8 14-8v-4L14 21.6z" fill="#FF3621" opacity="0.5"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="36" y="22" font-family="'DM Sans', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="700" fill="#1B3139">databricks</text>
+</svg>
