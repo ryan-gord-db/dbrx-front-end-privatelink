@@ -1,5 +1,6 @@
 /* ============================================================
-   Scenario Data — Public Path, Wildcard Fwd, Workspace Fwd
+   Scenario Data — Public Path, Wildcard Fwd, Workspace Fwd,
+                   Per-Workspace PHZ
    ============================================================ */
 
 // eslint-disable-next-line no-unused-vars
@@ -378,6 +379,198 @@ zone "my-app.aws.databricksapps.com" {
         { from: 'client',   to: 'dxvpn',     type: 'https',        step: 7, label: '' },
         { from: 'dxvpn',    to: 'vpce',      type: 'https',        step: 7, label: '' },
         { from: 'vpce',     to: 'cp',        type: 'https',        step: 7, label: 'PrivateLink' },
+      ],
+    },
+  },
+
+  /* ----------------------------------------------------------
+     Scenario C — Per-Workspace PHZ
+     ---------------------------------------------------------- */
+  perworkspacephz: {
+    id: 'perworkspacephz',
+    title: 'On-Prem: Wildcard Forward + Per-Workspace Route 53 PHZs',
+    overview:
+      'Uses the same wildcard DNS forwarding from on-prem as the Wildcard Forward scenario ' +
+      '(<code>*.cloud.databricks.com</code> and <code>*.aws.databricksapps.com</code>), but instead of a single ' +
+      'Private Hosted Zone for <code>privatelink.cloud.databricks.com</code>, a <strong>separate PHZ is created for each workspace domain</strong> ' +
+      '(e.g., <code>prod-wksp.cloud.databricks.com</code>). Each per-workspace PHZ has a CNAME record pointing to a ' +
+      '<strong>workspace-specific VPCE</strong>. Route 53 intercepts the query before it reaches public DNS, resolving it ' +
+      'against the matching PHZ and returning the private IP of that workspace\'s designated VPCE ENI. ' +
+      'Workspaces without a PHZ fall through to public DNS and resolve normally.',
+
+    useCase:
+      'Best when only a subset of workspaces need front-end PrivateLink, or when different workspaces must use ' +
+      'different VPCEs — for example, a production workspace routing through a prod VPCE in one subnet while a dev ' +
+      'workspace routes through a separate dev VPCE. Combines the operational simplicity of wildcard forwarding on-prem ' +
+      'with fine-grained VPCE routing control in AWS.',
+
+    caveats: [
+      'Each workspace that needs private access requires its <strong>own Route 53 PHZ</strong> (e.g., <code>prod-wksp.cloud.databricks.com</code>) ' +
+        'with a CNAME record pointing to its designated VPCE DNS name. This is more PHZ management than the single-PHZ wildcard approach.',
+      'The on-prem wildcard forwarder sends <strong>all</strong> <code>*.cloud.databricks.com</code> queries to Route 53 — ' +
+        'workspaces without a matching PHZ will fall through to public DNS and resolve to a public IP. This is the intended ' +
+        'behavior (only targeted workspaces go private), but make sure the right workspaces have PHZs.',
+      'If multiple VPCEs are in use, each VPCE needs its own security group, subnet placement, and may need its own ' +
+        '<strong>Private Access Settings (PAS)</strong> configuration in Databricks.',
+      'When a new workspace needs private access, a new PHZ must be created and associated with the VPC — ' +
+        'an AWS-side change, not an on-prem DNS change. The wildcard forwarder already covers the domain.',
+    ],
+
+    steps: [
+      { id: 1, label: 'Client queries on-prem DNS',            detail: 'The client queries the corporate DNS server for <strong>prod-wksp.cloud.databricks.com</strong>.' },
+      { id: 2, label: 'Wildcard conditional forwarder matches', detail: 'The corporate DNS server matches <strong>*.cloud.databricks.com</strong> and forwards the query over <strong>Direct Connect / VPN</strong> to the Route 53 Inbound Resolver ENIs.' },
+      { id: 3, label: 'Route 53 Inbound Resolver receives query', detail: 'The DNS query arrives at the <strong>Route 53 Inbound Resolver endpoint</strong> ENIs in the customer VPC.' },
+      { id: 4, label: 'Per-workspace PHZ intercepts the query', detail: 'Route 53 finds a Private Hosted Zone matching <strong>prod-wksp.cloud.databricks.com</strong>. The PHZ contains a CNAME record pointing to this workspace\'s designated VPCE DNS name (e.g., <code>vpce-0abc123.vpce-svc-xyz.us-east-1.vpce.amazonaws.com</code>).' },
+      { id: 5, label: 'CNAME resolves to VPCE private IP',     detail: 'Route 53 follows the CNAME and resolves the VPCE DNS name to the <strong>private IP</strong> of the designated front-end VPCE ENI (e.g., <code>10.0.1.50</code> for the prod VPCE).' },
+      { id: 6, label: 'DNS response returns to client',        detail: 'The private IP address is returned back through the Inbound Resolver, over DX/VPN, through the corporate DNS server, to the client.' },
+      { id: 7, label: 'HTTPS via designated VPCE to control plane', detail: 'The client sends HTTPS traffic to the private IP. The request enters the VPC via DX/VPN, hits the <strong>designated front-end VPCE ENI</strong>, and is forwarded through <strong>AWS PrivateLink</strong> to the Databricks control plane.' },
+    ],
+
+    components: [
+      { name: 'Client Device',              purpose: 'Originates DNS query and HTTPS request from on-prem',         config: 'Uses corporate DNS server; routable to VPC via DX/VPN' },
+      { name: 'Corporate DNS Server',        purpose: 'Forwards all Databricks queries to Route 53 Inbound Resolver', config: 'Same wildcard forwarders as Scenario A: *.cloud.databricks.com and *.aws.databricksapps.com -> Inbound Resolver ENI IPs' },
+      { name: 'Direct Connect / VPN',        purpose: 'Private network link between on-prem and AWS VPC',            config: 'Must allow DNS (UDP/TCP 53) and HTTPS (TCP 443)', link: 'https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html' },
+      { name: 'Route 53 Inbound Resolver',   purpose: 'Receives forwarded DNS queries inside the VPC',               config: 'Inbound endpoint with ENIs in VPC subnets; security group allows port 53', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-getting-started.html' },
+      { name: 'Per-Workspace PHZ (prod)',     purpose: 'Intercepts DNS for prod workspace and resolves to prod VPCE', config: 'Zone: prod-wksp.cloud.databricks.com; CNAME to prod VPCE DNS name', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
+      { name: 'Per-Workspace PHZ (dev)',      purpose: 'Intercepts DNS for dev workspace and resolves to dev VPCE',   config: 'Zone: dev-wksp.cloud.databricks.com; CNAME to dev VPCE DNS name', link: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html' },
+      { name: 'Prod Front-End VPCE',          purpose: 'Interface endpoint for production workspace traffic',         config: 'Service: com.amazonaws.vpce.&lt;region&gt;.databricks-workspace; ENI in prod subnet', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+      { name: 'Dev Front-End VPCE',           purpose: 'Interface endpoint for dev workspace traffic',                config: 'Service: com.amazonaws.vpce.&lt;region&gt;.databricks-workspace; ENI in dev subnet', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+      { name: 'Databricks Control Plane',    purpose: 'Hosts workspace UI and REST API',                             config: 'Accessible via PrivateLink; each workspace reachable through its designated VPCE', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+    ],
+
+    configs: [
+      {
+        title: 'Per-Workspace PHZ + CNAME Records (Terraform)',
+        lang: 'hcl',
+        code:
+`# --- Prod workspace PHZ ---
+resource "aws_route53_zone" "prod_wksp_phz" {
+  name = "prod-wksp.cloud.databricks.com"
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
+}
+
+resource "aws_route53_record" "prod_wksp_cname" {
+  zone_id = aws_route53_zone.prod_wksp_phz.zone_id
+  name    = "prod-wksp.cloud.databricks.com"
+  type    = "CNAME"
+  ttl     = 300
+  records = [
+    aws_vpc_endpoint.databricks_fe_prod.dns_entry[0]["dns_name"]
+  ]
+}
+
+# --- Dev workspace PHZ ---
+resource "aws_route53_zone" "dev_wksp_phz" {
+  name = "dev-wksp.cloud.databricks.com"
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
+}
+
+resource "aws_route53_record" "dev_wksp_cname" {
+  zone_id = aws_route53_zone.dev_wksp_phz.zone_id
+  name    = "dev-wksp.cloud.databricks.com"
+  type    = "CNAME"
+  ttl     = 300
+  records = [
+    aws_vpc_endpoint.databricks_fe_dev.dns_entry[0]["dns_name"]
+  ]
+}`,
+      },
+      {
+        title: 'Multiple Front-End VPCEs (Terraform)',
+        lang: 'hcl',
+        code:
+`# Prod VPCE — e.g., in a prod subnet
+resource "aws_vpc_endpoint" "databricks_fe_prod" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.vpce.\${var.region}.databricks-workspace"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.prod.id]
+  security_group_ids  = [aws_security_group.vpce_prod_sg.id]
+  private_dns_enabled = false
+}
+
+# Dev VPCE — e.g., in a dev subnet
+resource "aws_vpc_endpoint" "databricks_fe_dev" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.vpce.\${var.region}.databricks-workspace"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.dev.id]
+  security_group_ids  = [aws_security_group.vpce_dev_sg.id]
+  private_dns_enabled = false
+}`,
+      },
+      {
+        title: 'Windows DNS — Wildcard Forwarders (PowerShell)',
+        lang: 'powershell',
+        code:
+`# Same as Wildcard Forward scenario — forward all Databricks domains
+Add-DnsServerConditionalForwarderZone \`
+  -Name "cloud.databricks.com" \`
+  -MasterServers 10.0.1.10, 10.0.2.10 \`
+  -ReplicationScope "Forest"
+
+Add-DnsServerConditionalForwarderZone \`
+  -Name "aws.databricksapps.com" \`
+  -MasterServers 10.0.1.10, 10.0.2.10 \`
+  -ReplicationScope "Forest"
+
+# The per-workspace routing is handled in Route 53 PHZs,
+# NOT in on-prem DNS. On-prem DNS config is identical
+# to the Wildcard Forward scenario.`,
+      },
+      {
+        title: 'Route 53 Inbound Resolver Endpoint (Terraform)',
+        lang: 'hcl',
+        code:
+`resource "aws_route53_resolver_endpoint" "inbound" {
+  name      = "databricks-inbound"
+  direction = "INBOUND"
+
+  security_group_ids = [aws_security_group.resolver_sg.id]
+
+  ip_address {
+    subnet_id = aws_subnet.private_a.id
+  }
+  ip_address {
+    subnet_id = aws_subnet.private_b.id
+  }
+}`,
+      },
+    ],
+
+    diagram: {
+      zones: [
+        { id: 'onprem', label: 'On-Premises Network', x: 20, y: 30, w: 190, h: 340, style: 'comp-box-onprem' },
+        { id: 'vpc', label: 'Customer VPC', x: 300, y: 30, w: 380, h: 340, style: 'comp-box-vpc' },
+        { id: 'databricks', label: 'Databricks', x: 770, y: 30, w: 170, h: 340, style: 'comp-box-db' },
+      ],
+      nodes: [
+        { id: 'client',    label: 'Client',              sub: 'Browser / CLI',                       x: 60,  y: 100, w: 110, h: 48, zone: 'onprem' },
+        { id: 'corpdns',   label: 'Corporate DNS',        sub: '*.cloud.databricks.com\n*.aws.databricksapps.com',  x: 60,  y: 280, w: 110, h: 58, zone: 'onprem' },
+        { id: 'dxvpn',     label: 'DX / VPN',             sub: 'Private link',                        x: 230, y: 195, w: 80,  h: 44, zone: null },
+        { id: 'resolver',  label: 'R53 Inbound',          sub: 'Resolver Endpoint',                   x: 370, y: 280, w: 120, h: 48, zone: 'vpc' },
+        { id: 'phz-prod',  label: 'PHZ: prod-wksp',       sub: 'prod-wksp.cloud.databricks.com',      x: 330, y: 70,  w: 160, h: 44, zone: 'vpc' },
+        { id: 'phz-dev',   label: 'PHZ: dev-wksp',        sub: 'dev-wksp.cloud.databricks.com',       x: 330, y: 142, w: 160, h: 44, zone: 'vpc' },
+        { id: 'vpce-prod', label: 'Prod VPCE',            sub: 'ENI: 10.0.1.x',                      x: 555, y: 70,  w: 110, h: 44, zone: 'vpc' },
+        { id: 'vpce-dev',  label: 'Dev VPCE',             sub: 'ENI: 10.0.2.x',                      x: 555, y: 142, w: 110, h: 44, zone: 'vpc' },
+        { id: 'cp',        label: 'Control Plane',        sub: 'Databricks workspaces',               x: 790, y: 155, w: 130, h: 50, zone: 'databricks', style: 'comp-box-db' },
+      ],
+      connections: [
+        { from: 'client',    to: 'corpdns',   type: 'dns-query',    step: 1, label: 'DNS query' },
+        { from: 'corpdns',   to: 'dxvpn',     type: 'dns-query',    step: 2, label: 'Fwd *.cloud…' },
+        { from: 'dxvpn',     to: 'resolver',   type: 'dns-query',    step: 3, label: '' },
+        { from: 'resolver',  to: 'phz-prod',   type: 'dns-query',    step: 4, label: 'PHZ match', badgePos: 0.6 },
+        { from: 'phz-prod',  to: 'vpce-prod',  type: 'dns-response', step: 5, label: 'CNAME → VPCE' },
+        { from: 'resolver',  to: 'dxvpn',      type: 'dns-response', step: 6, label: '' },
+        { from: 'dxvpn',     to: 'corpdns',    type: 'dns-response', step: 6, label: '' },
+        { from: 'corpdns',   to: 'client',     type: 'dns-response', step: 6, label: '10.0.1.x' },
+        { from: 'client',    to: 'dxvpn',      type: 'https',        step: 7, label: '' },
+        { from: 'dxvpn',     to: 'vpce-prod',  type: 'https',        step: 7, label: '' },
+        { from: 'vpce-prod', to: 'cp',         type: 'https',        step: 7, label: 'PrivateLink' },
       ],
     },
   },
