@@ -84,6 +84,16 @@ dig +short my-wksp.cloud.databricks.com`,
       'returning the private IP of the front-end VPCE via an A record for the region (e.g., <code>nvirginia.privatelink.cloud.databricks.com</code>). ' +
       'All traffic stays on private networks — nothing traverses the public internet.',
 
+    useCase:
+      'Best when all Databricks workspaces in a region require front-end PrivateLink and routing traffic for every workspace to the same VPCE is acceptable. ' +
+      'This is the simplest front-end PrivateLink configuration — a single wildcard forwarding rule covers all current and future workspaces.',
+
+    caveats: [
+      'All <code>*.cloud.databricks.com</code> queries are forwarded privately — including workspaces that may not have a corresponding VPCE configured, which will cause DNS resolution failures for those workspaces.',
+      'Workspaces in other Databricks regions (e.g., EU workspaces accessed by US-based users) will also be forwarded, potentially breaking access if the PHZ and VPCE only cover one region.',
+      'If a new workspace is created without PrivateLink enabled, on-prem clients will not be able to reach it until it is added to the VPCE configuration.',
+    ],
+
     steps: [
       { id: 1, label: 'Client queries on-prem DNS',           detail: 'The client queries the corporate DNS server for <strong>my-wksp.cloud.databricks.com</strong>.' },
       { id: 2, label: 'Conditional forwarder matches',         detail: 'The corporate DNS server matches the query against the conditional forwarding rule for <strong>*.cloud.databricks.com</strong> and forwards it over <strong>Direct Connect / VPN</strong>.' },
@@ -220,6 +230,16 @@ resource "aws_route53_record" "workspace" {
       'targeting only the specific workspace FQDN (e.g., <code>my-wksp.cloud.databricks.com</code>). ' +
       'This is more surgical — other Databricks workspaces still resolve via public DNS. ' +
       'The rest of the flow is identical to the wildcard scenario: Route 53 Inbound Resolver, PHZ (<code>privatelink.cloud.databricks.com</code>) with a region A record, VPCE, PrivateLink.',
+
+    useCase:
+      'Best when only a subset of Databricks workspaces need front-end PrivateLink. ' +
+      'Non-targeted workspaces continue to resolve via public DNS, so there is no risk of breaking access to workspaces that are not configured for PrivateLink.',
+
+    caveats: [
+      'Each workspace that requires PrivateLink needs its own conditional forwarder entry on the corporate DNS server — more configuration to maintain.',
+      'When a new workspace is provisioned and needs PrivateLink, a DNS change must be made on-prem before it can be reached privately. This is an operational step that can be missed.',
+      'If the DNS team is separate from the cloud team, each new workspace requires a cross-team change request.',
+    ],
 
     steps: [
       { id: 1, label: 'Client queries on-prem DNS',           detail: 'The client queries the corporate DNS server for <strong>my-wksp.cloud.databricks.com</strong>.' },

@@ -19,6 +19,9 @@
   const summaryTitle     = $('#summaryTitle');
   const summaryOverview  = $('#summaryOverview');
   const summarySteps     = $('#summarySteps');
+  const infoCards        = $('#infoCards');
+  const useCaseText      = $('#useCaseText');
+  const caveatsList      = $('#caveatsList');
   const stepControls     = $('#stepControls');
   const stepIndicator    = $('#stepIndicator');
   const stepPrev         = $('#stepPrev');
@@ -57,6 +60,20 @@
       li.innerHTML = `<strong>Step ${step.id}: ${step.label}</strong> — ${step.detail}`;
       summarySteps.appendChild(li);
     });
+
+    // Use Case & Caveats
+    if (s.useCase && s.caveats) {
+      infoCards.classList.remove('hidden');
+      useCaseText.innerHTML = s.useCase;
+      caveatsList.innerHTML = '';
+      s.caveats.forEach(c => {
+        const li = document.createElement('li');
+        li.innerHTML = c;
+        caveatsList.appendChild(li);
+      });
+    } else {
+      infoCards.classList.add('hidden');
+    }
 
   }
 

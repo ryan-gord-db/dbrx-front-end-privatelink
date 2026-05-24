@@ -236,6 +236,48 @@ a:hover { text-decoration: underline; }
   line-height: 1.7;
 }
 
+/* --- Info Cards (Use Case & Caveats) --- */
+.info-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.info-card {
+  background: #fff;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+}
+.info-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--db-dark);
+}
+.use-case-card {
+  border-left: 3px solid var(--db-green);
+}
+.use-case-card h3::before { content: '\2714\0020'; color: var(--db-green); }
+.caveats-card {
+  border-left: 3px solid #D4A017;
+}
+.caveats-card h3::before { content: '\26A0\0020'; color: #D4A017; }
+.info-card p,
+.info-card li {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--db-text);
+}
+.info-card ul {
+  padding-left: 1.25rem;
+  margin: 0;
+}
+.info-card ul li {
+  margin-bottom: 0.35rem;
+}
+
 /* --- Detail Expander --- */
 .detail-expander {
   border-top: 1px solid var(--db-border);
