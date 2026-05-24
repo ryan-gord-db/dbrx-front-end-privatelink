@@ -212,7 +212,7 @@ zone "aws.databricksapps.com" {
       ],
       nodes: [
         { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                     x: 60,  y: 120, w: 110, h: 48, zone: 'onprem' },
-        { id: 'corpdns',  label: 'Corporate DNS',        sub: '*.cloud.db… + *.…apps.com →',       x: 60,  y: 270, w: 110, h: 48, zone: 'onprem' },
+        { id: 'corpdns',  label: 'Corporate DNS',        sub: '*.cloud.databricks.com\n*.aws.databricksapps.com',  x: 60,  y: 265, w: 110, h: 58, zone: 'onprem' },
         { id: 'dxvpn',    label: 'DX / VPN',             sub: 'Private link',                      x: 230, y: 195, w: 80,  h: 44, zone: null },
         { id: 'resolver', label: 'R53 Inbound',          sub: 'Resolver Endpoint',                 x: 380, y: 270, w: 120, h: 48, zone: 'vpc' },
         { id: 'phz',      label: 'Route 53 PHZ',         sub: 'privatelink.cloud.databricks.com',  x: 370, y: 110, w: 150, h: 48, zone: 'vpc' },

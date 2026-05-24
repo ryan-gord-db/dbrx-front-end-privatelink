@@ -81,13 +81,26 @@ const DiagramRenderer = (() => {
       class: node.style || 'comp-box',
       rx: 6,
     }));
-    g.appendChild(el('text', {
-      x: node.w / 2, y: node.h / 2 - 6, class: 'comp-label',
-    }, node.label));
-    if (node.sub) {
+    if (node.sub && node.sub.includes('\n')) {
+      const lines = node.sub.split('\n');
+      const labelY = node.h / 2 - 6 - (lines.length - 1) * 5;
       g.appendChild(el('text', {
-        x: node.w / 2, y: node.h / 2 + 10, class: 'comp-sublabel',
-      }, node.sub));
+        x: node.w / 2, y: labelY, class: 'comp-label',
+      }, node.label));
+      lines.forEach((line, i) => {
+        g.appendChild(el('text', {
+          x: node.w / 2, y: labelY + 14 + i * 12, class: 'comp-sublabel',
+        }, line));
+      });
+    } else {
+      g.appendChild(el('text', {
+        x: node.w / 2, y: node.h / 2 - 6, class: 'comp-label',
+      }, node.label));
+      if (node.sub) {
+        g.appendChild(el('text', {
+          x: node.w / 2, y: node.h / 2 + 10, class: 'comp-sublabel',
+        }, node.sub));
+      }
     }
     return g;
   }
