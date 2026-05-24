@@ -44,7 +44,9 @@
     });
 
     // Diagram
+    hideStepPopup();
     DiagramRenderer.render(diagramContainer, s);
+    attachBadgeListeners();
     if (animMode === 'step') {
       currentStep = 1;
       applyStepMode();
@@ -146,6 +148,7 @@
   /* ----- Compare mode ----- */
   function enterCompare() {
     compareActive = true;
+    hideStepPopup();
     compareToggle.classList.add('active');
     singleView.classList.add('hidden');
     compareView.classList.remove('hidden');
@@ -185,6 +188,73 @@
     const detailsEls = $$('details');
     detailsEls.forEach(d => d.setAttribute('open', ''));
     window.print();
+  }
+
+  /* ----- Step popup ----- */
+  const stepPopup      = $('#stepPopup');
+  const stepPopupBadge = $('#stepPopupBadge');
+  const stepPopupTitle = $('#stepPopupTitle');
+  const stepPopupBody  = $('#stepPopupBody');
+
+  function showStepPopup(stepNum, badgeEl) {
+    const s = SCENARIOS[currentScenario];
+    const stepData = s.steps.find(st => st.id === stepNum);
+    if (!stepData) return;
+
+    stepPopupBadge.textContent = stepData.id;
+    stepPopupTitle.textContent = stepData.label;
+    stepPopupBody.innerHTML = stepData.detail;
+    stepPopup.classList.remove('hidden');
+
+    // Position near the clicked badge, converted from SVG to page coords
+    const svgEl = diagramContainer.querySelector('svg');
+    if (!svgEl || !badgeEl) return;
+
+    const svgRect = svgEl.getBoundingClientRect();
+    const badgeCircle = badgeEl.querySelector('circle');
+    const cx = parseFloat(badgeCircle.getAttribute('cx'));
+    const cy = parseFloat(badgeCircle.getAttribute('cy'));
+
+    const viewBox = svgEl.viewBox.baseVal;
+    const scaleX = svgRect.width / viewBox.width;
+    const scaleY = svgRect.height / viewBox.height;
+
+    const pageX = svgRect.left + window.scrollX + cx * scaleX;
+    const pageY = svgRect.top + window.scrollY + cy * scaleY;
+
+    const popupW = stepPopup.offsetWidth;
+    const popupH = stepPopup.offsetHeight;
+    let left = pageX - popupW / 2;
+    let top = pageY + 18 * scaleY;
+
+    // Keep within viewport
+    const vw = document.documentElement.clientWidth;
+    if (left + popupW > vw - 16) left = vw - popupW - 16;
+    if (left < 16) left = 16;
+    if (top + popupH > window.scrollY + window.innerHeight - 16) {
+      top = pageY - popupH - 14 * scaleY;
+    }
+
+    stepPopup.style.left = left + 'px';
+    stepPopup.style.top = top + 'px';
+  }
+
+  function hideStepPopup() {
+    stepPopup.classList.add('hidden');
+  }
+
+  function attachBadgeListeners() {
+    const badges = diagramContainer.querySelectorAll('.badge-group');
+    badges.forEach(bg => {
+      bg.addEventListener('mouseenter', () => {
+        const step = parseInt(bg.getAttribute('data-badge-step'), 10);
+        showStepPopup(step, bg);
+      });
+
+      bg.addEventListener('mouseleave', () => {
+        hideStepPopup();
+      });
+    });
   }
 
   /* ----- Event Listeners ----- */

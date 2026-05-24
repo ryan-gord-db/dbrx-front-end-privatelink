@@ -199,7 +199,16 @@
   fill: #6B7785;
 }
 
-/* Step number badges */
+/* Step number badges — clickable */
+.badge-group {
+  cursor: pointer;
+  pointer-events: all;
+}
+.badge-group:hover .step-badge-bg {
+  fill: #0E5C8E;
+  filter: drop-shadow(0 0 4px rgba(19, 124, 189, 0.6));
+  transition: fill 0.15s ease, filter 0.15s ease;
+}
 .step-badge {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 10px;
@@ -207,9 +216,11 @@
   fill: #fff;
   text-anchor: middle;
   dominant-baseline: central;
+  pointer-events: none;
 }
 .step-badge-bg {
   fill: #137CBD;
   stroke: #fff;
   stroke-width: 1;
+  transition: fill 0.15s ease, filter 0.15s ease;
 }

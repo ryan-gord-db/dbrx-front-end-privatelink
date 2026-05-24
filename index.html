@@ -113,6 +113,15 @@
     <p>Databricks Front-End PrivateLink Reference &mdash; <a href="https://docs.databricks.com/en/security/network/classic/privatelink.html" target="_blank" rel="noopener">Official Documentation</a></p>
   </footer>
 
+  <!-- Step detail popup (shown when clicking a numbered badge in the diagram) -->
+  <div class="step-popup hidden" id="stepPopup">
+    <div class="step-popup-header">
+      <span class="step-popup-badge" id="stepPopupBadge"></span>
+      <span class="step-popup-title" id="stepPopupTitle"></span>
+    </div>
+    <div class="step-popup-body" id="stepPopupBody"></div>
+  </div>
+
   <script src="js/scenarios.js"></script>
   <script src="js/diagrams.js"></script>
   <script src="js/main.js"></script>

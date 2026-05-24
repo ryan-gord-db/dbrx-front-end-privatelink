@@ -444,6 +444,64 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--db-border);
 }
 
+/* --- Step Detail Popup --- */
+.step-popup {
+  position: absolute;
+  z-index: 200;
+  width: 380px;
+  background: #fff;
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(27, 49, 57, 0.18), 0 2px 8px rgba(27, 49, 57, 0.08);
+  overflow: hidden;
+  animation: popup-enter 0.18s ease-out;
+}
+@keyframes popup-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--db-light-bg);
+  border-bottom: 1px solid var(--db-border);
+}
+.step-popup-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--db-blue);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-popup-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--db-dark);
+  flex: 1;
+}
+.step-popup-body {
+  padding: 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--db-text);
+}
+.step-popup-body strong { color: var(--db-dark); }
+.step-popup-body code {
+  background: var(--db-light-bg);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.82rem;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
 /* --- Utilities --- */
 .hidden { display: none !important; }
 
@@ -455,7 +513,8 @@ a:hover { text-decoration: underline; }
   .mode-controls,
   #compareToggle,
   #exportPdf,
-  .copy-btn { display: none !important; }
+  .copy-btn,
+  .step-popup { display: none !important; }
 
   body { background: #fff; }
 
