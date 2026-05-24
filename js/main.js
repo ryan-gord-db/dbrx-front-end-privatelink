@@ -19,8 +19,9 @@
   const summaryTitle     = $('#summaryTitle');
   const summaryOverview  = $('#summaryOverview');
   const summarySteps     = $('#summarySteps');
-  const infoCards        = $('#infoCards');
+  const useCaseCard      = $('#useCaseCard');
   const useCaseText      = $('#useCaseText');
+  const caveatsCard      = $('#caveatsCard');
   const caveatsList      = $('#caveatsList');
   const stepControls     = $('#stepControls');
   const stepIndicator    = $('#stepIndicator');
@@ -61,10 +62,17 @@
       summarySteps.appendChild(li);
     });
 
-    // Use Case & Caveats
-    if (s.useCase && s.caveats) {
-      infoCards.classList.remove('hidden');
+    // Use Case
+    if (s.useCase) {
+      useCaseCard.classList.remove('hidden');
       useCaseText.innerHTML = s.useCase;
+    } else {
+      useCaseCard.classList.add('hidden');
+    }
+
+    // Caveats
+    if (s.caveats) {
+      caveatsCard.classList.remove('hidden');
       caveatsList.innerHTML = '';
       s.caveats.forEach(c => {
         const li = document.createElement('li');
@@ -72,7 +80,7 @@
         caveatsList.appendChild(li);
       });
     } else {
-      infoCards.classList.add('hidden');
+      caveatsCard.classList.add('hidden');
     }
 
   }

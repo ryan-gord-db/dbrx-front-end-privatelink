@@ -237,18 +237,13 @@ a:hover { text-decoration: underline; }
 }
 
 /* --- Info Cards (Use Case & Caveats) --- */
-.info-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
 .info-card {
   background: #fff;
   border: 1px solid var(--db-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
 }
 .info-card h3 {
   font-size: 0.95rem;
