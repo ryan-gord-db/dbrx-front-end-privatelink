@@ -267,6 +267,9 @@ zone "aws.databricksapps.com" {
         '<strong>Private Access Settings (PAS)</strong> configuration in Databricks.',
       'When a new workspace needs private access, a new PHZ must be created and associated with the VPC — ' +
         'an AWS-side change, not an on-prem DNS change. The wildcard forwarder already covers the domain.',
+      'Avoid placing the Route 53 Inbound Resolver endpoint in the same VPC as a Databricks front-end VPCE. ' +
+        'The VPCE\'s auto-generated private DNS entries can interfere with the Inbound Resolver\'s query resolution, ' +
+        'causing resolution conflicts. Use a separate shared-services or DNS VPC for the Inbound Resolver.',
     ],
 
     steps: [
