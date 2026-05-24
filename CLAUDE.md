@@ -1,7 +1,7 @@
 # Front-End PrivateLink Visual Explainer
 
 ## Project Context
-Read [PRD.md](PRD.md) before doing any work on this project. It contains the full product requirements, scenario definitions, page layout, diagram specifications, and technical stack decisions.
+Read [docs/PRD.md](docs/PRD.md) before doing any work on this project. It contains the full product requirements, scenario definitions, page layout, diagram specifications, and technical stack decisions.
 
 ## Key Decisions
 - **Single page, plain HTML/CSS/JS** — no frameworks, no build step
@@ -27,4 +27,4 @@ Read [PRD.md](PRD.md) before doing any work on this project. It contains the ful
 - **External links:** Contextual links to official Databricks PrivateLink docs in component tables and config snippets
 
 ## File Structure
-See PRD.md Section 7.1 for the expected file layout.
+See docs/PRD.md Section 7.1 for the expected file layout.

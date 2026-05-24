@@ -161,9 +161,10 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
     main.js           — Init, event listeners, UI controls
   assets/
     databricks-logo.svg
-  PRD.md              — This document
-  CLAUDE.md           — Agent instructions (points to PRD)
-  .cursorrules        — Cursor AI instructions (points to PRD)
+  docs/
+    PRD.md            — This document
+  CLAUDE.md           — Agent instructions (points to docs/PRD.md)
+  .cursorrules        — Cursor AI instructions (points to docs/PRD.md)
   README.md           — Project overview and dev instructions
 ```
 

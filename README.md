@@ -2,7 +2,7 @@
 
 An interactive single-page reference that visualizes DNS resolution and network connectivity paths for Databricks front-end PrivateLink on AWS. Built for customer network and cloud engineers evaluating or implementing PrivateLink configurations.
 
-**[Live Site](https://pages.github.com/)** · **[PRD](PRD.md)**
+**[Live Site](https://pages.github.com/)** · **[PRD](docs/PRD.md)**
 
 ---
 
@@ -58,7 +58,8 @@ js/
 assets/
   databricks-logo.svg       Header logo
   favicon.svg               Browser tab icon
-PRD.md                      Full product requirements document
+docs/
+  PRD.md                    Full product requirements document
 ```
 
 ## Tech Stack

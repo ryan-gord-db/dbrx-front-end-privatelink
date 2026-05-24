@@ -1,6 +1,6 @@
 # Front-End PrivateLink Visual Explainer
 
-Read PRD.md before doing any work. It contains full requirements, scenarios, layout, and tech stack.
+Read docs/PRD.md before doing any work. It contains full requirements, scenarios, layout, and tech stack.
 
 ## Quick Reference
 - Plain HTML/CSS/JS — no frameworks, no build step, no CDN dependencies
@@ -16,4 +16,4 @@ Read PRD.md before doing any work. It contains full requirements, scenarios, lay
 - PDF export via @media print + export button
 - Contextual links to official Databricks PrivateLink docs
 
-See CLAUDE.md for additional context. See PRD.md Section 7.1 for file structure.
+See CLAUDE.md for additional context. See docs/PRD.md Section 7.1 for file structure.
