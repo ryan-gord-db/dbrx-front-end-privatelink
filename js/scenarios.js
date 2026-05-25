@@ -577,4 +577,183 @@ zone "my-app.aws.databricksapps.com" {
       ],
     },
   },
+
+  /* ----------------------------------------------------------
+     Option 4 (Scenario D) — On-Prem DNS Resolution Only
+     ---------------------------------------------------------- */
+  onpremdns: {
+    id: 'onpremdns',
+    title: 'Option 4 — On-Prem: Corporate DNS Resolution Only (No Route 53)',
+    overview:
+      'DNS resolution is handled entirely within the corporate DNS infrastructure — no Route 53 Inbound Resolver or Private Hosted Zones are involved. ' +
+      'The on-prem DNS server is configured with static records (A records, CNAME overrides, or Response Policy Zones) that map each workspace domain ' +
+      'and its associated Databricks Apps domains directly to the front-end VPCE ENI private IP. ' +
+      'The client resolves the workspace URL on-prem and sends HTTPS traffic over Direct Connect or VPN to the VPCE, which forwards through PrivateLink to the Databricks control plane.',
+
+    useCase:
+      'Best when the organization wants to keep all DNS resolution within its existing corporate DNS platform and avoid deploying Route 53 Inbound Resolver endpoints. ' +
+      'This approach leverages capabilities that many enterprise DNS platforms already provide — such as CNAME overrides, Response Policy Zones (RPZ), or static A records — to map Databricks domains to VPCE private IPs without any AWS-side DNS infrastructure.',
+
+    caveats: [
+      'DNS platforms differ significantly, so <strong>implementation steps are platform-dependent</strong>. The exact mechanism (static A records, CNAME overrides, RPZ, split-horizon zones) depends on your DNS platform (Windows DNS, BIND, Infoblox, Bluecat, etc.).',
+      'You must create records for <strong>every workspace of interest</strong> — including the workspace URL (<code>my-wksp.cloud.databricks.com</code>), the data plane relay (<code>dbc-dp-&lt;workspace-id&gt;.cloud.databricks.com</code>), and any <strong>Databricks Apps domains</strong> (<code>&lt;app-name&gt;.aws.databricksapps.com</code>) tied to those workspaces.',
+      'Some DNS platforms support <strong>CNAME overrides</strong> and <strong>Response Policy Zones (RPZ)</strong>, which simplify the configuration by allowing wildcard or pattern-based rewriting without individual records per workspace.',
+      'If the VPCE ENI private IPs change (e.g., if the VPCE is recreated), all on-prem DNS records must be updated manually — there is no automatic synchronization with AWS.',
+      'Unlike the forwarding-based options, there is no Route 53 involvement at all. This means <strong>no automatic CNAME chasing</strong> through Databricks public DNS — the on-prem records must point directly to the correct VPCE IP or DNS name.',
+      'New workspaces and new Databricks Apps require on-prem DNS changes before they can be reached privately.',
+    ],
+
+    steps: [
+      { id: 1, label: 'Client queries corporate DNS',              detail: 'The client queries the <strong>corporate DNS server</strong> for <strong>my-wksp.cloud.databricks.com</strong>.' },
+      { id: 2, label: 'Corporate DNS resolves locally',            detail: 'The corporate DNS server matches the query against a <strong>static A record, CNAME override, or RPZ rule</strong> configured for this workspace domain. The query is resolved entirely on-prem — no forwarding to Route 53.' },
+      { id: 3, label: 'DNS response returns VPCE private IP',      detail: 'The corporate DNS server returns the <strong>VPCE ENI private IP</strong> (e.g., <code>10.0.1.50</code>) directly to the client.' },
+      { id: 4, label: 'HTTPS via DX/VPN to VPCE',                  detail: 'The client sends HTTPS traffic to the private IP. The request traverses <strong>Direct Connect / VPN</strong> into the customer VPC and reaches the <strong>front-end VPCE ENI</strong>.' },
+      { id: 5, label: 'VPCE forwards to Databricks control plane', detail: 'The VPCE forwards the request through the <strong>AWS PrivateLink</strong> tunnel to the Databricks control plane, which terminates TLS and serves the workspace.' },
+    ],
+
+    components: [
+      { name: 'Client Device',              purpose: 'Originates DNS query and HTTPS request from on-prem',                config: 'Uses corporate DNS server; routable to VPC via DX/VPN' },
+      { name: 'Corporate DNS Server',        purpose: 'Resolves Databricks domains locally using static records or RPZ',    config: 'A records, CNAME overrides, or RPZ rules mapping workspace + Apps domains to VPCE ENI private IPs. Platform-specific (Windows DNS, BIND, Infoblox, Bluecat, etc.)' },
+      { name: 'Direct Connect / VPN',        purpose: 'Private network link between on-prem and AWS VPC',                  config: 'Must allow HTTPS (TCP 443); DNS stays on-prem so port 53 forwarding is NOT needed', link: 'https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html' },
+      { name: 'Front-End VPCE',              purpose: 'Interface endpoint providing private access to Databricks',          config: 'Service: com.amazonaws.vpce.&lt;region&gt;.databricks-workspace; ENI in VPC subnet with static private IP', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+      { name: 'Databricks Control Plane',    purpose: 'Hosts workspace UI and REST API',                                   config: 'Accessible via PrivateLink; workspace-specific URL', link: 'https://docs.databricks.com/en/security/network/classic/privatelink.html' },
+    ],
+
+    configs: [
+      {
+        title: 'Windows DNS — Static A Records (PowerShell)',
+        lang: 'powershell',
+        code:
+`# Create a primary zone for the workspace domain
+Add-DnsServerPrimaryZone -Name "my-wksp.cloud.databricks.com" \`
+  -ZoneFile "my-wksp.cloud.databricks.com.dns" \`
+  -ReplicationScope "Forest"
+
+# Add an A record pointing to the VPCE ENI private IP
+Add-DnsServerResourceRecordA \`
+  -ZoneName "my-wksp.cloud.databricks.com" \`
+  -Name "@" \`
+  -IPv4Address "10.0.1.50"
+
+# Repeat for the data plane relay domain
+Add-DnsServerPrimaryZone -Name "dbc-dp-a1b2c3d4e5f6.cloud.databricks.com" \`
+  -ZoneFile "dbc-dp-a1b2c3d4e5f6.cloud.databricks.com.dns" \`
+  -ReplicationScope "Forest"
+
+Add-DnsServerResourceRecordA \`
+  -ZoneName "dbc-dp-a1b2c3d4e5f6.cloud.databricks.com" \`
+  -Name "@" \`
+  -IPv4Address "10.0.1.50"
+
+# Repeat for each Databricks App domain
+Add-DnsServerPrimaryZone -Name "my-app.aws.databricksapps.com" \`
+  -ZoneFile "my-app.aws.databricksapps.com.dns" \`
+  -ReplicationScope "Forest"
+
+Add-DnsServerResourceRecordA \`
+  -ZoneName "my-app.aws.databricksapps.com" \`
+  -Name "@" \`
+  -IPv4Address "10.0.1.50"`,
+      },
+      {
+        title: 'BIND — Response Policy Zone (RPZ)',
+        lang: 'text',
+        code:
+`# named.conf — define the RPZ
+zone "rpz.databricks.local" {
+    type master;
+    file "/etc/bind/db.rpz.databricks";
+    allow-query { any; };
+};
+
+options {
+    response-policy { zone "rpz.databricks.local"; };
+};
+
+# /etc/bind/db.rpz.databricks — RPZ records
+$TTL 300
+@  IN  SOA  ns1.example.com. admin.example.com. (
+       2024010101 3600 900 604800 300 )
+   IN  NS   ns1.example.com.
+
+; Rewrite workspace domain to VPCE private IP
+my-wksp.cloud.databricks.com        IN  A  10.0.1.50
+dbc-dp-a1b2c3d4e5f6.cloud.databricks.com  IN  A  10.0.1.50
+
+; Rewrite Databricks Apps domains
+my-app.aws.databricksapps.com       IN  A  10.0.1.50
+
+; Wildcard (optional — rewrites ALL *.cloud.databricks.com)
+; *.cloud.databricks.com             IN  A  10.0.1.50`,
+      },
+      {
+        title: 'Infoblox — CNAME Override (Conceptual)',
+        lang: 'text',
+        code:
+`# Infoblox supports CNAME overrides via the GUI or WAPI.
+# A CNAME override rewrites the DNS response for a specific
+# FQDN without creating a full authoritative zone.
+
+# GUI: Data Management > DNS > Zones > + (Add Zone)
+#   Zone Type: Response Policy Zone
+#   OR use a "DNS Override" record
+
+# WAPI example (REST API):
+# Create an override for my-wksp.cloud.databricks.com
+curl -k -u admin:password -X POST \\
+  "https://infoblox.example.com/wapi/v2.12/record:rpz:a" \\
+  -d '{"name":"my-wksp.cloud.databricks.com",
+       "rp_zone":"rpz.local",
+       "ipv4addr":"10.0.1.50"}'
+
+# Repeat for data plane relay and Apps domains`,
+      },
+      {
+        title: 'Front-End VPCE (AWS CLI)',
+        lang: 'bash',
+        code:
+`# Create the VPCE — note the ENI private IPs assigned here
+# are what your on-prem DNS records must point to
+aws ec2 create-vpc-endpoint \\
+  --vpc-id vpc-0123456789abcdef0 \\
+  --service-name com.amazonaws.vpce.<region>.databricks-workspace \\
+  --vpc-endpoint-type Interface \\
+  --subnet-ids subnet-aaa subnet-bbb \\
+  --security-group-ids sg-0123456789abcdef0
+
+# Retrieve the ENI private IPs after creation
+aws ec2 describe-vpc-endpoints \\
+  --vpc-endpoint-ids vpce-0123456789abcdef0 \\
+  --query "VpcEndpoints[].NetworkInterfaceIds" \\
+  --output text | xargs -I{} aws ec2 describe-network-interfaces \\
+  --network-interface-ids {} \\
+  --query "NetworkInterfaces[].PrivateIpAddress" \\
+  --output text`,
+      },
+    ],
+
+    diagram: {
+      zones: [
+        { id: 'onprem', label: 'On-Premises Network', x: 20, y: 50, w: 260, h: 300, style: 'comp-box-onprem' },
+        { id: 'vpc', label: 'Customer VPC', x: 430, y: 50, w: 220, h: 300, style: 'comp-box-vpc' },
+        { id: 'databricks', label: 'Databricks', x: 740, y: 50, w: 190, h: 300, style: 'comp-box-db' },
+      ],
+      nodes: [
+        { id: 'client',   label: 'Client',              sub: 'Browser / CLI',                     x: 40,  y: 120, w: 110, h: 48, zone: 'onprem' },
+        { id: 'corpdns',  label: 'Corporate DNS',        sub: 'Static records / RPZ',              x: 40,  y: 270, w: 120, h: 48, zone: 'onprem' },
+        { id: 'records',  label: 'DNS Records',          sub: 'A / CNAME / RPZ →\nVPCE private IP', x: 170, y: 120, w: 100, h: 54, zone: 'onprem' },
+        { id: 'dxvpn',    label: 'DX / VPN',             sub: 'Private link',                      x: 330, y: 195, w: 80,  h: 44, zone: null },
+        { id: 'vpce',     label: 'Front-End VPCE',       sub: 'ENI: 10.0.1.50',                    x: 470, y: 195, w: 140, h: 48, zone: 'vpc' },
+        { id: 'cp',       label: 'Control Plane',        sub: 'my-wksp.cloud.databricks.com',    x: 765, y: 195, w: 160, h: 48, zone: 'databricks', style: 'comp-box-db' },
+      ],
+      connections: [
+        { from: 'client',  to: 'corpdns',  type: 'dns-query',    step: 1, label: 'DNS\nquery', labelOffsetX: -38 },
+        { from: 'corpdns', to: 'records',  type: 'dns-query',    step: 2, label: 'Local\nlookup', labelOffsetY: 20 },
+        { from: 'corpdns', to: 'client',   type: 'dns-response', step: 3, label: '10.0.1.50', labelOffsetX: 35 },
+        { from: 'client',  to: 'dxvpn',    type: 'https',        step: 4, label: '' },
+        { from: 'dxvpn',   to: 'vpce',     type: 'https',        step: 4, label: '' },
+        { from: 'vpce',    to: 'cp',       type: 'https',        step: 5, label: 'PrivateLink' },
+      ],
+    },
+  },
 };

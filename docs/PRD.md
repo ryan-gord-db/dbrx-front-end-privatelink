@@ -23,7 +23,7 @@ A single-page static website that visually explains the DNS resolution and netwo
 
 ## 4. Scenarios
 
-The page presents a scenario selector (e.g., segmented control or dropdown) that switches the entire page content. Four scenarios, presented in this order:
+The page presents a scenario selector (e.g., segmented control or dropdown) that switches the entire page content. Five scenarios, presented in this order:
 
 ### Scenario 0 — Public Path (Baseline)
 - **Purpose:** Establish the default resolution path when PrivateLink is not configured
@@ -46,6 +46,12 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 - **Flow:** Same as Scenario A but the conditional forwarders target specific domains instead of the wildcard: `<workspace-name>.cloud.databricks.com`, `dbc-dp-<workspace-id>.cloud.databricks.com` (data plane relay), and any Databricks Apps domains (`<app-name>.aws.databricksapps.com`) tied to the workspace
 - **Key difference:** More surgical DNS configuration; other Databricks workspaces resolve publicly. Requires forwarding multiple domains per workspace (workspace URL, data plane relay, each app). Diagram highlights the forwarding rule difference.
 
+### Option 4 (Scenario D) — On-Prem: Corporate DNS Resolution Only (No Route 53)
+- **Purpose:** Show DNS resolution handled entirely within corporate DNS infrastructure — no Route 53 Inbound Resolver or Private Hosted Zones involved
+- **Flow:** On-prem client → corporate DNS server (static A record / CNAME override / RPZ rule) → returns VPCE ENI private IP → client sends HTTPS over DX/VPN → front-end VPCE → PrivateLink → Databricks control plane
+- **Key difference:** No AWS-side DNS infrastructure (no Route 53 Inbound Resolver, no PHZ). All DNS resolution stays on-prem. DNS platforms differ significantly so implementation is platform-dependent (Windows DNS, BIND, Infoblox, Bluecat, etc.). Must map all workspaces of interest and their Databricks Apps domains to the VPCE private IP. Some platforms support CNAME overrides and Response Policy Zones (RPZ) which simplify the process.
+- **Use case:** Best when the organization wants to keep all DNS resolution within its existing corporate DNS platform and avoid deploying Route 53 Inbound Resolver endpoints.
+
 ## 5. Page Layout & UX
 
 ### 5.1 Structure (Single Page)
@@ -54,7 +60,7 @@ The page presents a scenario selector (e.g., segmented control or dropdown) that
 |  Header: Databricks logo + title                 |
 +--------------------------------------------------+
 |  Scenario Selector (segmented control)           |
-|  [ Public Path | Opt 1: Wildcard Fwd | Opt 2: Per-WS PHZ | Opt 3: Workspace Fwd ] |
+|  [ Public Path | Opt 1: Wildcard Fwd | Opt 2: Per-WS PHZ | Opt 3: Workspace Fwd | Opt 4: On-Prem DNS ] |
 +--------------------------------------------------+
 |  Animated Diagram Area                           |
 |  (SVG/CSS, updates per scenario)                 |
